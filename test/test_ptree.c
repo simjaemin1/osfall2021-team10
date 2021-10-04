@@ -5,7 +5,6 @@
 
 int main(int argc, char *argv[])
 {
-	pid_t tid;
-	tid=syscall(398);
+	syscall(398);
 }
 	
