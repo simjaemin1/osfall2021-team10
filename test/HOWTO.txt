@@ -1,0 +1,12 @@
+이슈 보드랑 프로젝트 설명 ppt, md파일 보고 해봤는데 모든 과정을 한곳에 설명한 곳이 없어서 여기에 정리해놓겠습니다.
+
+
+0. 커널 컴파일
+1. 현재 운영체제 상에서 arm-linux-gnueabi-gcc -I/include test_ptree.c -o test 로 실행파일 test를 만듭니다. Makefile 일단 대충 만들어 놨습니다.
+
+2. mnt_dir 디렉토리를 만듭니다. 위치는 상관없는 것 같은데 tizen-image랑 같은 디렉토리가 좋은 것 같습니다.
+
+3. tizen-image 디렉토리 위치에서 sudo mount rootfs.img ../mnt_dir/ 를 하여 rootfs.img를 mnt_dir에 마운트 합니다. 그러면 /mnt_dir에 여러가지가 생깁니다.
+
+4. 그중 root 디렉토리에 아까 만든 실행파일 test를 복사해서 붙여넣기 합니다.
+5. ./qemu.sh로 타이젠을 실행하고 /root/test를 입력합니다.
