@@ -1,4 +1,4 @@
-/* OSFALL2021 / TEAM10 / PROJ1 / Han Bin & Seung Hyun */
+/* OSFALL2021 / TEAM10 / PROJ1 / Koo Han Bin & Lee Seung Hyun */
 
 #include <asm/uaccess.h>
 #include <uapi/asm-generic/errno-base.h>
@@ -10,34 +10,63 @@
 #include <linux/prinfo.h>
 #include <linux/thread_info.h>	// get_current()
 
-/*Getting top process as task_struct*/
-static struct task_struct* get_top_process(void)
-{
-	struct task_struct *tmp;
-	tmp=get_current();
-	printk("current tasks pid: %d name: %s", tmp->pid, tmp->comm);
-    while(tmp->parent!=tmp)
-	{
-		tmp=tmp->parent;
-		printk("current tasks pid: %d name: %s", tmp->pid, tmp->comm);
-	}
-	return tmp;
+void store_prinfo(struct task_struct *task, struct prinfo *info) {
+    info->state = task->state;
+    info->pid = task->pid;
+    info->parent_pid = task->parent->pid;
+    info->first_child_pid = list_empty(&task->children) ? 0:list_first_entry(&task->children, struct task_struct, sibling)->pid;
+    info->next_sibling_pid = list_empty(&task->sibling) ? 0:list_next_entry(task, sibling)->pid;
+    info->uid = task->cred->uid;
+    strcpy(info->comm, task->comm);
 }
 
-/*traverse function*/
-void traverse(struct task_struct *top)
-{
 
+void print_prinfo(struct prinfo *info) {
+    /* Only for debugging purpose */
+	prinfk("********* print prinfo called **********\n");
+    prinfk("state 				: %lld\n", info->state);
+	prinfk("pid 				: %d\n", info->pid);
+    prinfk("parent pid 			: %d\n", info->pid);
+    prinfk("first child pid 	: %d\n", info->pid);
+    prinfk("next sibling pid 	: %d\n", info->pid);
+    prinfk("uid 				: %lld\n", info->uid);
+    prinfk("comm 				: %s", info->comm);
+    prinfk("****************************************\n");
+}
+
+
+/* traverse function */
+int traverse(struct prinfo* buf_k, int nr_k)
+{
+	int cnt = 0;
+	struct task_struct *task = &init_task;
+  
+	while(1) {
+  	if(cnt <= nr_k) { store_prinfo(task, buf_k[cnt++]); }
+    else { break; }
+    
+  	if(list_empty(&task->children)) {
+    	while(list_is_last(&task->sibling,&task->parent->children)) { task = task->parent; }
+      task = list_next_entry(task, sibling);
+    }
+    else {
+    	task = list_first_entry(&task->children, struct task_struct, sibling);
+    }
+    
+    if(task->pid == init->pid) break; /* if dfs reach at the top again */
+    if(nr_k == cnt) break;
+    }
+
+    return cnt;
 }
 
 
 SYSCALL_DEFINE2(ptree, struct prinfo __user *, buf, int __user *, nr)
 {
     /* Initiate variable, list with error check */
-	struct task_struct *top;	/*top process's task_struct*/
-    int nr_k; /* kernel nr value */
-    int cnt = 0; /* counted # of task */
-    struct prinfo *buf_k; /* kernel prinfo buffer  */
+    int nr_k; 			    /* kernel nr value 	    */
+    int cnt = 0; 			/* counted # of task 	*/
+    struct prinfo *buf_k; 	/* kernel prinfo buffer */
 
     
 	if(!buf || !nr) {
@@ -62,10 +91,11 @@ SYSCALL_DEFINE2(ptree, struct prinfo __user *, buf, int __user *, nr)
         return -EFAULT;
     }
 	
-
-	top=get_top_process();		//find top process before traverse
     /* Lock tasklist and do something */
     read_lock(&tasklist_lock);
+    
+    cnt = traverse(buf_k, nr_k);
+    
     /* End traversal. Unlock and copy to user space */
     read_unlock(&tasklist_lock);
 
@@ -80,8 +110,7 @@ SYSCALL_DEFINE2(ptree, struct prinfo __user *, buf, int __user *, nr)
         printk("ERROR : copy to user space error (buf)\n");
         return -EFAULT;
     } 
-	
-
+		
     /* free kmalloc space and return */
 
     kfree(buf_k);
