@@ -8,15 +8,15 @@
 
 int main(int argc, char *argv[])
 {
-	struct prinfo *buf;
-	int nr=100;
-	int nr_k;
+	int *nr=(int*)malloc(sizeof(int));
+	*nr = 200;
+	struct prinfo *plist;
 	struct prinfo p;
-	buf = (struct prinfo*)malloc(sizeof(struct prinfo)*nr);
-	nr_k = syscall(398, buf, &nr);
+	plist = (struct prinfo*)malloc(sizeof(struct prinfo)*(*nr));
+	int nr_k = syscall(398, plist, nr);
 	for (int i=0; i<nr_k; i++)
 	{
-		p=buf[i];
+		p=plist[i];
 		printf("%s,%d,%lld,%d,%d,%d,%lld\n", p.comm, p.pid, p.state, p.parent_pid, p.first_child_pid, p.next_sibling_pid, p.uid);
 	}
 }
