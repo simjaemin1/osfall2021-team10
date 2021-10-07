@@ -16,22 +16,22 @@ void store_prinfo(struct task_struct *task, struct prinfo *info) {
     info->parent_pid = task->parent->pid;
     info->first_child_pid = list_empty(&task->children) ? 0:list_first_entry(&task->children, struct task_struct, sibling)->pid;
     info->next_sibling_pid = list_empty(&task->sibling) ? 0:list_next_entry(task, sibling)->pid;
-    info->uid = task->cred->uid;
+    info->uid = (int64_t)(task->cred->uid.val);
     strcpy(info->comm, task->comm);
 }
 
 
 void print_prinfo(struct prinfo *info) {
     /* Only for debugging purpose */
-	prinfk("********* print prinfo called **********\n");
-    prinfk("state 				: %lld\n", info->state);
-	prinfk("pid 				: %d\n", info->pid);
-    prinfk("parent pid 			: %d\n", info->pid);
-    prinfk("first child pid 	: %d\n", info->pid);
-    prinfk("next sibling pid 	: %d\n", info->pid);
-    prinfk("uid 				: %lld\n", info->uid);
-    prinfk("comm 				: %s", info->comm);
-    prinfk("****************************************\n");
+	printk("********* print prinfo called **********\n");
+    printk("state 				: %lld\n", info->state);
+	printk("pid 				: %d\n", info->pid);
+    printk("parent pid 			: %d\n", info->parent_pid);
+    printk("first child pid 	: %d\n", info->first_child_pid);
+    printk("next sibling pid 	: %d\n", info->next_sibling_pid);
+    printk("uid 				: %lld\n", info->uid);
+    printk("comm 				: %s", info->comm);
+    printk("****************************************\n");
 }
 
 
@@ -42,19 +42,23 @@ int traverse(struct prinfo* buf_k, int nr_k)
 	struct task_struct *task = &init_task;
   
 	while(1) {
-  	if(cnt <= nr_k) { store_prinfo(task, buf_k[cnt++]); }
+  	if(cnt <= nr_k) { 
+		store_prinfo(task, &buf_k[cnt++]); 
+	//	print_prinfo(&buf_k[cnt-1]);	for debug
+	}
     else { break; }
     
   	if(list_empty(&task->children)) {
     	while(list_is_last(&task->sibling,&task->parent->children)) { task = task->parent; }
-      task = list_next_entry(task, sibling);
+		task = list_next_entry(task, sibling);
     }
     else {
     	task = list_first_entry(&task->children, struct task_struct, sibling);
     }
     
-    if(task->pid == init->pid) break; /* if dfs reach at the top again */
+    if(task->pid == init_task.pid) break; /* if dfs reach at the top again */
     if(nr_k == cnt) break;
+	
     }
 
     return cnt;
@@ -78,7 +82,6 @@ SYSCALL_DEFINE2(ptree, struct prinfo __user *, buf, int __user *, nr)
         printk("ERROR : nr reading error\n");
         return -EFAULT;
     }
-
     if(nr_k <= 1) {
         printk("ERROR : nr is less than 1\n");
         return -EINVAL;
@@ -90,7 +93,6 @@ SYSCALL_DEFINE2(ptree, struct prinfo __user *, buf, int __user *, nr)
         printk("ERROR : struct prinfo buf error\n");
         return -EFAULT;
     }
-	
     /* Lock tasklist and do something */
     read_lock(&tasklist_lock);
     
@@ -105,8 +107,7 @@ SYSCALL_DEFINE2(ptree, struct prinfo __user *, buf, int __user *, nr)
         printk("ERROR : copy to user space error (nr)\n");
         return -EFAULT;
     }
-
-    if(copy_to_user(buf, &buf_k, sizeof(struct prinfo)*nr_k)) {
+    if(copy_to_user(buf, buf_k, sizeof(struct prinfo)*nr_k)) {
         printk("ERROR : copy to user space error (buf)\n");
         return -EFAULT;
     } 
