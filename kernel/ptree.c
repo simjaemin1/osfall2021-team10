@@ -14,7 +14,7 @@ SYSCALL_DEFINE2(ptree, struct prinfo __user *, buf, int __user *, nr)
     /* Initiate variable, list with error check */
 
     int nr_k; /* kernel nr value */
-    int cnt; /* counted # of task */
+    int cnt = 0; /* counted # of task */
     struct prinfo *buf_k; /* kernel prinfo buffer  */
 
     if(!buf || !nr) {
