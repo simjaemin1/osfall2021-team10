@@ -2,18 +2,41 @@
 
 
 ## 0. How to build kernel0
+먼저 파일을 다 받은 후, kernel image 디렉토리를 커널 디렉토리와 같은 디렉토리에 만든다. 그리고 다음과 같은 명령어를 차례대로 입력한다. 컴파일 과정은 build-rpi3-arm64.sh에 의해 이루어지며 이 파일을 실행하면 make 옵션을 자동을로 설정하여 커널 소스들을 컴파일 해준다. scripts 디렉토리에 있는 mkbootimg_rpi3.sh를 실행하면 이미지 파일 boot.img와 modules.img가 생긴다. 이들을 kernel image 디렉토리로 옮고 압축 파일을 이 디렉토리에 해제하여 나머지 이미지 파일들도 얻을 수 있다.
 ```bash
 cd <kernel path>
-./build
+./build-rpi3-arm64.sh
+sudo ./scripts/mkbootimg_rpi3.sh
+mv boot.img modules.img <kernel image path>
+tar xvzf tizen-unified_20181024.1_iot-headless-2parts-armv7l-rpi3.tar.gz -C <kernel image path>
 ```
+qemu.sh를 kernel 디렉토리에 놓고 다음과 같이 실행하면 tizen kernel이 실행된다.
+```bash
+cd <kernel path>
+sudo ./qemu.sh
+```
+추가로 현재 linux 운영체제에서 tizen kernel source를 이용하여 컴파일 하고 싶은 경우 `arm-linux-gnueabi-gcc -I/include test_ptree.c -o test
+`와 같이 컴파일 옵션을 주어 할 수 있다. 이는 test 디렉토리의 `Makefile`을 이용하여 구현하였다. 현재 linux 운영체제에 있는 파일을 옯길 경우 다음과 같이 `rootfs.img` 를 `mnt_dir`에 마운트한 후 `mnt_dir/root` 에 원하는 파일을 이동시키면 된다. 이후 커널 이미지를 `qemu.sh` 로 실행하면 `root` 디렉토리에 해당 파일을 확인할 수 있다.
+```bash
+mkdir mnt_dir
+sudo mount rootfs.img <mnt_dir path>
+cp <file> <mnt_dir path>/root/
+```
+
 
 ## 1. High level implementation
 #### 1.1 System call implementation
+
 #### 1.2 copy_from_user, copy_to_user
+
 #### 1.3 Error handling, locks and others
+
 #### 1.4 task_struct & doubly linked list
+linux는 `task_strcut`구조체를 이용하여 프로세스를 관리한다. `task_struct`는 같은 부모 process를 둔 자매끼리 doubly linked list 구조로 구현이 되어 있다. 이 doubly linked list에는 head가 존재하며 이는 데이터를 가지지 않는 dummy node이다. 이 list에는 특이하게 노드가 data 안에 저장이 되는데 `list_head children`은 자녀들로 이루어진 linked list의 head를 가리키며 자녀들로 이루어진 list의 각각의 노드들은 `list_head sibling`을 가리킨다. sibling을 이용하여 해당 프로세스의 task_struct 구조체에 접근하는 것이 큰 과제중 하나였는데, 컴파일 단계에서 sibling의 offset이 고정된다는 점을 이용하여 task_struct에 접근할 수 있었다. 따라서 자식 프로세스의 task_struct에 접근하기 위해서는 `(struct task_struct*)(task->children.next-(struct task_struct*)0->sibling)` 과 같은 과정을 통해 할 수 있는데 이는 linux/list.h 에 list_entry라는 매크로를 통해 구현되어 있었다. 
 #### 1.5 tree traversal
+
 #### 1.6 store_prinfo, print_prinfo
+
 #### 1.7 test file
 
 
