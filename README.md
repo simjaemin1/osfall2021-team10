@@ -32,7 +32,13 @@ cp <file> <mnt_dir path>/root/
 #### 1.3 Error handling, locks and others
 
 #### 1.4 task_struct & doubly linked list
-linux는 `task_strcut`구조체를 이용하여 프로세스를 관리한다. `task_struct`는 같은 부모 process를 둔 자매끼리 doubly linked list 구조로 구현이 되어 있다. 이 doubly linked list에는 head가 존재하며 이는 데이터를 가지지 않는 dummy node이다. 이 list에는 특이하게 노드가 data 안에 저장이 되는데 `list_head children`은 자녀들로 이루어진 linked list의 head를 가리키며 자녀들로 이루어진 list의 각각의 노드들은 `list_head sibling`을 가리킨다. sibling을 이용하여 해당 프로세스의 task_struct 구조체에 접근하는 것이 큰 과제중 하나였는데, 컴파일 단계에서 sibling의 offset이 고정된다는 점을 이용하여 task_struct에 접근할 수 있었다. 따라서 자식 프로세스의 task_struct에 접근하기 위해서는 `(struct task_struct*)(task->children.next-(struct task_struct*)0->sibling)` 과 같은 과정을 통해 할 수 있는데 이는 linux/list.h 에 list_entry라는 매크로를 통해 구현되어 있었다. 
+linux는 `task_strcut`구조체를 이용하여 프로세스를 관리한다. `task_struct`는 같은 부모 process를 둔 자매끼리 doubly linked list 구조로 구현이 되어 있다. 이 doubly linked list에는 head가 존재하며 이는 데이터를 가지지 않는 dummy node이다. 이 list에는 특이하게 노드가 data 안에 저장이 되는데 `list_head children`은 자녀들로 이루어진 linked list의 head를 가리키며 자녀들로 이루어진 list의 각각의 노드들은 `list_head sibling`을 가리킨다. sibling을 이용하여 해당 프로세스의 task_struct 구조체에 접근하는 것이 큰 과제중 하나였는데, 컴파일 단계에서 sibling의 offset이 고정된다는 점을 이용하여 task_struct에 접근할 수 있었다. 따라서 자식 프로세스의 task_struct에 접근하기 위해서는 `(struct task_struct*)(task->children.next-(struct task_struct*)0->sibling)` 과 같은 과정을 통해 할 수 있는데 이는 linux/list.h 에 list_entry라는 매크로를 통해 구현되어 있었다. 이 외에도 다양한 매크로 함수, 인라인 함수가 있었고 다음과 같은 함수들을 사용하였다.
+* list_entry(ptr, type, member)
+* list_first_entry(ptr, type, member)
+* list_next_entry(pos, member)
+* list_empty(head)
+* list_is_last(list, head)
+
 #### 1.5 tree traversal
 
 #### 1.6 store_prinfo, print_prinfo
