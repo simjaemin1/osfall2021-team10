@@ -1,9 +1,11 @@
 ### OSFALL2021 TEAM10 PROJ1
 
 
-## 0. How to build kernel
-
-내용
+## 0. How to build kernel0
+```bash
+cd <kernel path>
+./build
+```
 
 ## 1. High level implementation
 #### 1.1 System call implementation
