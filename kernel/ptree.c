@@ -42,23 +42,20 @@ int traverse(struct prinfo* buf_k, int nr_k)
 	struct task_struct *task = &init_task;
   
 	while(1) {
-  	if(cnt <= nr_k) { 
-		store_prinfo(task, &buf_k[cnt++]); 
-	//	print_prinfo(&buf_k[cnt-1]);	for debug
-	}
-    else { break; }
+  	    if(cnt < nr_k) { 
+		    store_prinfo(task, &buf_k[cnt++]);
+	    }
+        else { cnt++; }
     
-  	if(list_empty(&task->children)) {
-    	while(list_is_last(&task->sibling,&task->parent->children)) { task = task->parent; }
-		task = list_next_entry(task, sibling);
-    }
-    else {
-    	task = list_first_entry(&task->children, struct task_struct, sibling);
-    }
-    
-    if(task->pid == init_task.pid) break; /* if dfs reach at the top again */
-    if(nr_k == cnt) break;
-	
+  	    if(list_empty(&task->children)) {
+        	while(list_is_last(&task->sibling,&task->parent->children)) { task = task->parent; }
+		    task = list_next_entry(task, sibling);
+        }
+        else {
+    	    task = list_first_entry(&task->children, struct task_struct, sibling);
+        }
+        
+        if(task->pid == init_task.pid) break; /* if dfs reach at the top again */
     }
 
     return cnt;
@@ -116,6 +113,6 @@ SYSCALL_DEFINE2(ptree, struct prinfo __user *, buf, int __user *, nr)
 
     kfree(buf_k);
 
-    return nr_k;
+    return cnt;
 }
 

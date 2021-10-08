@@ -29,17 +29,21 @@ void print_process_tree(struct prinfo *plist, int size)
 
 int main(int argc, char *argv[])
 {
-	if(argc!=2)
+	if(argc != 2)
 	{
-		printf("usage: /test (number of entries)");
+		printf("Usage: /test (number of entries)");
 		return -1;
 	}
 	int *nr=(int*)malloc(sizeof(int));
 	*nr = atoi(argv[1]);
 	struct prinfo *plist = (struct prinfo*)malloc(sizeof(struct prinfo)*(*nr));
 	
-	int nr_k = syscall(398, plist, nr);
-	print_process_tree(plist, nr_k);
+	int total = syscall(398, plist, nr);
+	print_process_tree(plist, *nr);
+    printf("*************************\n");
+    printf("nr is %d\n", *nr);
+    printf("total # of process is %d\n", total);
+    printf("*************************\n");
 	free(nr);
 	free(plist);
 }
