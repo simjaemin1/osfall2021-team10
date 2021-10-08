@@ -94,7 +94,7 @@ kernel/ptree.c에 traverse라는 함수를 통해 dfs를 진행하고 process들
 가독성을 위해 ,뒤에 공백을 하나씩 추가하였다.
 
 #### 2.2 tree investigation
-
+swapper/0이 가장 위의 process이며 이 프로세스는 systemd와 kthreadd 이 두개의 프로세스를 자녀로 갖는다. kthreadd의 자녀들의 pid가 낮은 것으로 미루어보아 kthreadd가 이후에 계속 fork를 하여 자녀 process를 만드는 것을 알 수 있다. 이들은 커널의 기본적인 기능을 담당하는 프로세스들인 것으로 보인다. 현재 우리가 실행하고 있는 process인 test는 systemd-login-bash-test 순으로 이어진다. 컴퓨터 전원을 키고 처음으로 실행한 프로세스임에도 이전에 400개가 넘는 프로세스가 실행되었다는 점이 놀라웠다. login을 하기 전에도 200개가 넘는 프로세스가 돌아가는 것을 확인할 수 있다. 
 
 
 ## 3. Lesson learned
