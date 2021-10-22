@@ -1,1 +1,1 @@
-master branch of osfall2021 project
+proj2 branch of osfall2021 project
