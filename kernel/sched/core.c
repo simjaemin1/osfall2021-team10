@@ -2175,6 +2175,10 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 {
 	p->on_rq			= 0;
 
+    p->wrr.weight       = 10;
+    //p->wrr.time_slice   = 0;
+    //INIT_LIST_HEAD(&p->wrr.wrr_list);
+
 	p->se.on_rq			= 0;
 	p->se.exec_start		= 0;
 	p->se.sum_exec_runtime		= 0;
