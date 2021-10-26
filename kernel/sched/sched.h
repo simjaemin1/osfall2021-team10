@@ -507,6 +507,11 @@ static inline int rt_bandwidth_enabled(void)
 #endif
 
 /* Real-Time classes' related field in a runqueue: */
+struct wrr_rq {
+    struct list_head queue;
+};
+
+
 struct rt_rq {
 	struct rt_prio_array active;
 	unsigned int rt_nr_running;
@@ -707,6 +712,7 @@ struct rq {
 
 	struct cfs_rq cfs;
 	struct rt_rq rt;
+    struct wrr_rq wrr;
 	struct dl_rq dl;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -1494,6 +1500,7 @@ static inline void set_curr_task(struct rq *rq, struct task_struct *curr)
 extern const struct sched_class stop_sched_class;
 extern const struct sched_class dl_sched_class;
 extern const struct sched_class rt_sched_class;
+extern const struct sched_class wrr_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
 
