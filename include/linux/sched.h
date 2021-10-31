@@ -415,9 +415,10 @@ struct sched_statistics {
 };
 
 struct sched_wrr_entity {
-    struct list_head        wrr_list;
+    struct list_head        node;
     unsigned int            weight;
     unsigned int            timeslice;
+    unsigned short          on_rq;
 };
 
 struct sched_entity {

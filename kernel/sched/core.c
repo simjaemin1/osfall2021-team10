@@ -1,5 +1,5 @@
 /*
- *  kernel/sched/core.c
+ /  kernel/sched/core.c
  *
  *  Core kernel scheduler code and related syscalls
  *
@@ -2176,8 +2176,8 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->on_rq			= 0;
 
     p->wrr.weight       = 10;
+    p->wrr.on_rq        = 0;
     //p->wrr.time_slice   = 0;
-    //INIT_LIST_HEAD(&p->wrr.wrr_list);
 
 	p->se.on_rq			= 0;
 	p->se.exec_start		= 0;
@@ -2394,7 +2394,7 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	} else if (rt_prio(p->prio)) {
 		p->sched_class = &rt_sched_class;
 	} else {
-		p->sched_class = &fair_sched_class;
+		p->sched_class = &wrr_sched_class;
 	}
 
 	init_entity_runnable_average(&p->se);
@@ -3990,7 +3990,7 @@ static void __setscheduler(struct rq *rq, struct task_struct *p,
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
 	else
-		p->sched_class = &fair_sched_class;
+		p->sched_class = &wrr_sched_class;
 }
 
 /*
@@ -5867,6 +5867,7 @@ void __init sched_init(void)
 		rq->calc_load_active = 0;
 		rq->calc_load_update = jiffies + LOAD_FREQ;
 		init_cfs_rq(&rq->cfs);
+        init_wrr_rq(&rq->wrr);
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
 #ifdef CONFIG_FAIR_GROUP_SCHED
