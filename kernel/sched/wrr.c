@@ -13,53 +13,68 @@
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
     INIT_LIST_HEAD(&wrr_rq->queue_head);
-    wrr_rq.total_weight = 0;
+    wrr_rq->total_weight = 0;
 }
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-    struct wrr_rq *wrr_rq = &rq->wrr_rq;
+    struct wrr_rq *wrr_rq = &rq->wrr;
     struct sched_wrr_entity *wrr_se = &p->wrr;
-    struct list_head head = wrr_rq->queue_head;
 
     LIST_HEAD_INIT(&wrr_se->node);
-    list_add_tail(&wrr_se->node, &head);
+    list_add_tail(&wrr_se->node, &wrr_rq->queue_head);
 
     wrr_se->on_rq = 1;
     wrr_se->timeslice = wrr_se->weight * WRR_TIMESLICE;
 
-    // It will print information of runqueue -> debugging purpose        
+    /* For the load balancing  */
+    wrr_rq->total_weight += wrr_se->weight;
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-    struct wrr_rq *wrr_rq;
+    struct wrr_rq *wrr_rq = &rq->wrr;
     struct sched_wrr_entity *wrr_se = &p->wrr;
+    /* What if the task blocked, what should we do with the time slice?  */
 }
 
 static void pick_next_task_wrr(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
     struct wrr_rq *wrr_rq = &rq->wrr;
-    struct sched_wrr_entity *wrr_se;
+    struct sched_wrr_entity *wrr_se = &p->wrr;
     struct task_struct *p;
     int new_tasks;
 }
 
 static void put_prev_task_fair(struct rq *rq, struct task_struct *prev)
 {
-    struct wrr_rq *wrr_rq;
+    struct wrr_rq *wrr_rq = &rq->wrr;
     struct sched_wrr_entity *wrr_se = &prev->wrr;
 }
-
-struct void 
 
 static void set_curr_task_wrr(struct rq *rq)
 {
     struct sched_wrr_entity *wrr_se = &rq->curr->wrr;
 }
 
-static void task_tick_wrr()
+static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
+    if(p->policy != SCHED_WRR)
+        return;
+
+    struct wrr_rq *wrr_rq = &rq->wrr;
+    struct sched_wrr_entity *wrr_se = &p->wrr;
+    if(--wrr_se->timeslice) {
+        return;
+    }
+    else {
+        /* Timeslice expired -> reset timeslice and requeue this task */
+        list_del(&wrr_se->node);
+        wrr_se->timeslice = wrr_se->weight * WRR_TIMESLICE;
+        list_add_tail(&wrr_se->node, &wrr_rq->queue_head);
+
+        resched_curr(rq);
+    }
 }
 
 const struct sched_class wrr_sched_class = {
