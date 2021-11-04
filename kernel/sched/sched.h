@@ -509,7 +509,7 @@ static inline int rt_bandwidth_enabled(void)
 /* Real-Time classes' related field in a runqueue: */
 struct wrr_rq {
     struct list_head queue_head;
-    unsigned int total_weight = 0;
+    unsigned int total_weight;
 };
 
 
