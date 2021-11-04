@@ -3,18 +3,20 @@
 
 ## 0. How to build kernel
 다음과 같은 directory 상황에서 tizen-5.0-rpi3 폴더를 kernel path라고 가정한다.
+```bash
 tizen-kernel
 ├── tizen-5.0-rpi3
 ├── tizen-image
 └── mnt_dir
+```
 
 우선 -----------.
 
 ## 1. High level implementation - WRR
-#### 1.1 Define SCHED_WRR
+### 1.1 Define SCHED_WRR
 <kernel path>/include/uapi/linux/sched.h에 SCHED_WRR를 7로 추가해주었다.
 
-#### 1.2 Define sched_wrr_entity
+### 1.2 Define sched_wrr_entity
 실행되는 각 task마다 WRR policy에 사용될 sched_wrr_entity struct가 필요하여 정의해주었다.
 include/linux/sched.h에 task_struct와 같이 정의되어있다.
 
@@ -34,12 +36,15 @@ struct sched_wrr_entity는 다음과 같은 변수와 함께 정의되어있다.
 알려주기 위해 entity를 구조체 변수로 추가해주었다.
 `struct sched_wrr_entity wrr`
 
-#### 1.3 Systemcall : sched_setweight, shced_getweight
+### 1.3 Systemcall : sched_setweight, shced_getweight
 다른 process에서 systemcall로 pid를 통해 특정 process가 가진 wrr policy에 대한 weight값을 get하거나 set하게 위해 두 systemcall을 추가한다.
 
 * include/linux/syscalls.h
+
     아래 두 줄을 추가한다.
+
     `asmlinkage long sys_sched_setweight(pid_t pid, int weight)`
+
     `asmlinkage long sys_sched_getweight(pid_t pid)`
 * arch/arm/tools/syscalls.tbl
     아래 두 줄을 추가한다.
@@ -60,7 +65,7 @@ struct sched_wrr_entity는 다음과 같은 변수와 함께 정의되어있다.
     `SYSCALL_DEFINE1(sched_getweight, pid_t, pid)`
     두 함수를 정의해주었다.
 
-#### 1.4 Define wrr_rq
+### 1.4 Define wrr_rq
 kernel/sched/sched.h에는 현재 task들이 돌아가고 있는 runqueue에 대한 구조체인 struct rq가 정의되어 있고, 각 scheduler policy마다  runqueue가 따로 정의되어있다.
 여기에 나중에 WRR policy가 되었을 때 사용하기 위한 wrr_rq를 정의하고 struct rq 내부에 추가해준다.
 
@@ -71,7 +76,7 @@ struct wrr_rq에는 다음과 같은 변수와 함께 정의되어있다.
     load_balancing에 사용하기 위해 runqueue에 저장된 모든 task의 weight에 대한 합의 변수를 가지고있다.
 3. !!!!!!!!추후 추가 필요!!!!!!!!!!!!!!
 
-#### 1.5 kernel/sched/wrr.c
+### 1.5 kernel/sched/wrr.c
 먼저 sturct shced_wrr_class를 정의하고 내부에 함수들을 지정해주어 후에 kernel/sched/core.c에서 사용하는 여러 함수들을 WRR policy에서도 써줄 수 있도록 한다.
 /kernel/sched/rt.c에 정의된 sched_rt_class의 .next = &sched_wrr_class로 rt policy 다음에 wrr policy인 것을 명시해준다.
 
@@ -95,7 +100,7 @@ struct wrr_rq에는 다음과 같은 변수와 함께 정의되어있다.
     sched_init 함수에서 scheduler initialization을 할 때 wrr_rq를 초기화 해주기 위해 call하는 함수이다.
     먼저 wrr_rq->queue_head를 초기화 해주고 total_weight 변수도 0으로 초기화 해준다.
 
-#### 1.6 kernel/sched/core.c
+### 1.6 kernel/sched/core.c
 -----core.c에서 어떤어떤거 한다 간략한 설명-----
 
 다음과 같은 부분을 수정하였다.
