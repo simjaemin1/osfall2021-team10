@@ -48,6 +48,8 @@ void trigger_load_balance_wrr(struct rq *rq)
         /* 2000ms did not passed  */
         return;
     }
+    
+    wrr_rq->load_balanced_time = curr_time;
 
     /* 2000ms passed. Do Load Balancing  */
     /* First, find max & min total_weight wrr_rq  */
