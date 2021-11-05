@@ -40,6 +40,14 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
 
+#include <uapi/asm-generic/errno-base.h>
+#include <linux/uidgid.h>
+#include <linux/thread_info.h>
+#include <asm/unistd.h>
+
+#define WRR_MAX_WEIGHT 20
+#define WRR_MIN_WEIGHT  1
+
 DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
 
 /*
@@ -89,6 +97,9 @@ cpumask_var_t cpu_isolated_map;
 /*
  * __task_rq_lock - lock the rq @p resides on.
  */
+
+extern void init_wrr_rq(struct wrr_rq *wrr_rq);
+
 struct rq *__task_rq_lock(struct task_struct *p, struct rq_flags *rf)
 	__acquires(rq->lock)
 {
@@ -2393,9 +2404,11 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		return -EAGAIN;
 	} else if (rt_prio(p->prio)) {
 		p->sched_class = &rt_sched_class;
-	} else {
+	} else if (p->policy == SCHED_WRR) {
 		p->sched_class = &wrr_sched_class;
-	}
+	} else {
+        p->sched_class = &fair_sched_class;
+    }
 
 	init_entity_runnable_average(&p->se);
 
@@ -3989,8 +4002,10 @@ static void __setscheduler(struct rq *rq, struct task_struct *p,
 		p->sched_class = &dl_sched_class;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
-	else
+	else if (p->policy == SCHED_WRR) 
 		p->sched_class = &wrr_sched_class;
+    else
+        p->sched_class = &fair_sched_class;
 }
 
 /*
@@ -6761,3 +6776,60 @@ const u32 sched_prio_to_wmult[40] = {
  /*  10 */  39045157,  49367440,  61356676,  76695844,  95443717,
  /*  15 */ 119304647, 148102320, 186737708, 238609294, 286331153,
 };
+
+SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
+{
+    struct task_struct *p;
+
+    if(pid < 0 || weight < WRR_MIN_WEIGHT || weight > WRR_MAX_WEIGHT) {
+        printk(KERN_ERR "ERROR : Invalid argument\n");
+        return -EINVAL;
+    }
+
+    rcu_read_lock();
+
+    p = find_process_by_pid(pid);
+    bool root = 1;/*(current_uid() == 0);*/
+    if(!root) {
+        /* Permission Denied */
+        printk(KERN_ERR "Permission Denied : You are not admin\n");
+        rcu_read_unlock();
+        return -EACCES;
+    }
+    else {
+        /* Permission Accepted  */
+        if(p->policy != SCHED_WRR) {
+            printk(KERN_ERR "ERROR : Policy is not sched_wrr\n");
+            rcu_read_unlock();
+            return -EINVAL;
+        }
+        printk("Permission Accepted\n");
+        p->wrr.weight = weight;
+    }
+
+    rcu_read_unlock();
+
+    return weight;
+}
+
+SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
+{
+    int weight;
+
+    if(pid < 0) {
+        printk(KERN_ERR "ERROR : Invalid pid\n");
+        return -EINVAL;
+    }
+
+    rcu_read_lock();
+
+    struct task_struct *p = find_process_by_pid(pid);
+    printk("**** task name is %s ****\n",p->comm);
+    printk("**** task pid  is %d ****\n",p->pid);
+    printk("**** task wrr weight is %u ****\n", p->wrr.weight);
+    weight = p->wrr.weight;
+
+    rcu_read_unlock();
+
+    return weight;
+}

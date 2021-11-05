@@ -17,11 +17,11 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 }
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
-{
+{   
     struct wrr_rq *wrr_rq = &rq->wrr;
     struct sched_wrr_entity *wrr_se = &p->wrr;
 
-    LIST_HEAD_INIT(&wrr_se->node);
+    INIT_LIST_HEAD(&wrr_se->node);
     list_add_tail(&wrr_se->node, &wrr_rq->queue_head);
 
     wrr_se->on_rq = 1;
@@ -29,8 +29,9 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
     /* For the load balancing  */
     wrr_rq->total_weight += wrr_se->weight;
-    
-    resched_curr(wrr_rq);
+    add_nr_running(rq, 1);
+
+    resched_curr(rq);
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
@@ -43,7 +44,8 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
     wrr_rq->total_weight -= wrr_se->weight;
 
-    resched_curr(wrr_rq);    
+    sub_nr_running(rq, 1);
+    resched_curr(rq);    
 }
 
 static struct task_struct *pick_next_task_wrr(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)

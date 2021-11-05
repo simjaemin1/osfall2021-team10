@@ -1,8 +1,10 @@
+#include <asm/unistd.h>
+#include <linux/types.h>
 #include <linux/syscalls.h>
 #include <linux/sched.h>
 #include <linux/thread_info.h>
 #include <uapi/asm-generic/errno-base.h>
-#include <unistd.h> // uid & euid
+#include <asm/unistd.h> // uid & euid
 
 #define WRR_MAX_WEIGHT 20
 #define WRR_MIN_WEIGHT  1
@@ -26,7 +28,7 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 
     rcu_read_lock();
 
-    p = find_process_by_pid(pid);
+    p = find_task_by_vpid(pid);
     if(getuid()) {
         /* Permission Denied */
         printk(KERN_ERR "Permission Denied : You are not admin\n");
@@ -55,12 +57,12 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 
     if(pid < 0) {
         printk(KERN_ERR "ERROR : Invalid pid\n");
-        return -EINVAL
+        return -EINVAL;
     }
 
     rcu_read_lock();
 
-    struct task_struct *p = find_process_by_pid(pid);
+    struct task_struct *p = find_task_by_vpid(pid);
     printk("**** task name is %s ****\n",p->comm);
     printk("**** task pid  is %d ****\n",p->pid);
     printk("**** task wrr weight is %u ****\n", p->wrr.weight);

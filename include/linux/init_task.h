@@ -21,6 +21,8 @@
 
 #include <asm/thread_info.h>
 
+#include <linux/sched/wrr.h>
+
 #ifdef CONFIG_SMP
 # define INIT_PUSHABLE_TASKS(tsk)					\
 	.pushable_tasks = PLIST_NODE_INIT(tsk.pushable_tasks, MAX_PRIO),
@@ -233,7 +235,7 @@ extern struct cred init_cred;
 	.prio		= MAX_PRIO-20,					\
 	.static_prio	= MAX_PRIO-20,					\
 	.normal_prio	= MAX_PRIO-20,					\
-	.policy		= SCHED_NORMAL,					\
+	.policy		= SCHED_WRR,					\
 	.cpus_allowed	= CPU_MASK_ALL,					\
 	.nr_cpus_allowed= NR_CPUS,					\
 	.mm		= NULL,						\
@@ -247,7 +249,13 @@ extern struct cred init_cred;
 	.rt		= {						\
 		.run_list	= LIST_HEAD_INIT(tsk.rt.run_list),	\
 		.time_slice	= RR_TIMESLICE,				\
-	},								\
+	},    \
+    .wrr    = { \
+        .weight = 10,   \
+        .timeslice = 10 * WRR_TIMESLICE, \
+        .on_rq = 0, \
+        .node = LIST_HEAD_INIT(tsk.wrr.node), \
+    },    \
 	.tasks		= LIST_HEAD_INIT(tsk.tasks),			\
 	INIT_PUSHABLE_TASKS(tsk)					\
 	INIT_CGROUP_SCHED(tsk)						\
