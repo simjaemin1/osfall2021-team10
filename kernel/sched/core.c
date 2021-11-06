@@ -44,6 +44,7 @@
 #include <linux/uidgid.h>
 #include <linux/thread_info.h>
 #include <asm/unistd.h>
+#include <linux/sched/wrr.h>
 
 #define WRR_MAX_WEIGHT 20
 #define WRR_MIN_WEIGHT  1
@@ -99,6 +100,7 @@ cpumask_var_t cpu_isolated_map;
  */
 
 extern void init_wrr_rq(struct wrr_rq *wrr_rq);
+extern void trigger_load_balance_wrr(struct rq *rq);
 
 struct rq *__task_rq_lock(struct task_struct *p, struct rq_flags *rf)
 	__acquires(rq->lock)
@@ -3057,6 +3059,7 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq->idle_balance = idle_cpu(cpu);
 	trigger_load_balance(rq);
+    trigger_load_balance_wrr(rq);
 #endif
 	rq_last_tick_reset(rq);
 }

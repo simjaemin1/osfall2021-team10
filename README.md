@@ -12,7 +12,7 @@ tizen-kernel
 
 우선 -----------.
 
-## 1. High level implementation - WRR
+## 1. High Level Implementation - WRR
 ### 1.1 Define SCHED_WRR
 <kernel path>/include/uapi/linux/sched.h에 SCHED_WRR를 7로 추가해주었다.
 
@@ -119,3 +119,31 @@ struct wrr_rq에는 다음과 같은 변수와 함께 정의되어있다.
 4. static void sched_fork
     fork된 task의 scheduling을 처리하는 부분에 대한 함수이다. fork된 task의 wrr entity 구조체의 변수들을 초기화해준다.
 
+## 2. High Level Implementation - Load Balancing
+### 2.1 kernel/include/core.c
+SMP에 대해 load balancing을 수행해야 하므로 core.c의 scheduler_tick 함수에 `trigger_load_balance_wrr(rq);` 부분을 추가해준다.
+
+### 2.2 kernel/include/wrr.c
+#### 2.2.1 Period
+Load Balancing의 주기는 2000ms이다. 즉 scheduler_tick 함수가 call될때마다 정해진 2000ms가 지났는지 체크를 해주어야 한다.
+즉 현재 시간이 이전에 wrr_rq에 저장해놓은 load_balancing_time (prev_time)과 현재 current time (curr_time)의 jiffies 값을 time_after macro로 비교해준다. 이후 curr_time이 prev_time보다 뒤 인 것을 확인하고, curr_time == prev_time + WRR_PERIOD라면 정확히 2000ms가 된 것이므로 load balancing을 진행한다. 이 방법이라면 overflow에도 문제없이 조건을 정확히 체크할 수 있다. 앞에 두 조건을 만족하지 못한 경우 다른 동작을 할 필요가 없으므로 return한다.
+
+#### 2.2.2 Determine max & min runqueue
+1. 먼저 rcu_read_lock()을 한다.
+2. 각 cpu에 대해 모든 runqueue의 total_weight를 체크하는데, WRR을 사용하지 않는 cpu는 체크하지 않는다.
+3. 각 cpu의 runqueue에 대한 total_weight 중 max와 min value를 저장하고, 그것이 어떤 cpu인지도 저장한다.
+4. rcu_read_unlock()을 한다.
+
+#### 2.2.3 Traverse the max runqueue & find maximum possible task to migrate
+두 max_rq와 min_rq를 lock 해준다.
+max_rq에 enqueue되어있는 sched_wrr_entity를 traverse하며 min_rq로 migrate 가능한 task 중 weight값이 가장 큰 것을 찾는다. 다음 네 가지 조건을 만족해야 한다.
+1. 현재 running중인 task는 migrate할 수 없다.
+2. cpu가 가능해야한다???
+3. migrate한 이후 total_weight값의 역전이 일어나거나 같아지면 안된다.
+4. 위 세가지를 만족하는 task 중 weight가 가장 커야한다.
+
+위 조건을 만족하는 task가 없을 수도 있다. 그때는 unlock해준 후 return한다.
+만약 존재할 경우 task를 runqueue에 대해 deactivate하고 해당 task_struct에 cpu 값을 옮길 min_cpu로 바꾼 후 다시 activate하고, min_cpu의 runqueue를 reschedule 해준다.
+이후 unlock하고 함수를 마친다.
+
+## 3. Something Learned & etc
