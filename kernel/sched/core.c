@@ -6785,6 +6785,9 @@ const u32 sched_prio_to_wmult[40] = {
 SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 {
     struct task_struct *p;
+    struct rq *rq;
+    struct wrr_rq *wrr_rq;
+    uid_t is_root
 
     if(pid < 0 || weight < WRR_MIN_WEIGHT || weight > WRR_MAX_WEIGHT) {
         printk(KERN_ERR "ERROR : Invalid argument\n");
@@ -6794,8 +6797,8 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
     rcu_read_lock();
 
     p = find_process_by_pid(pid);
-    bool root = 1;/*(current_uid() == 0);*/
-    if(!root) {
+    is_root = current_uid().val;
+    if(is_root) {
         /* Permission Denied */
         printk(KERN_ERR "Permission Denied : You are not admin\n");
         rcu_read_unlock();
@@ -6809,6 +6812,11 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
             return -EINVAL;
         }
         printk("Permission Accepted\n");
+
+        rq = task_rq(p);
+        wrr_rq = &rq->wrr;
+        wrr_rq->total_weight = 
+            wrr_rq->total_weight + weight - p->wrr.weight;
         p->wrr.weight = weight;
     }
 
@@ -6833,6 +6841,7 @@ SYSCALL_DEFINE0(sched_getweight)
 SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 {
     int weight;
+    struct task_struct *p;
 
     if(pid < 0) {
         printk(KERN_ERR "ERROR : Invalid pid\n");
@@ -6841,7 +6850,7 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 
     rcu_read_lock();
 
-    struct task_struct *p = find_process_by_pid(pid);
+    p = find_process_by_pid(pid);
     printk("**** task name is %s ****\n",p->comm);
     printk("**** task pid  is %d ****\n",p->pid);
     printk("**** task wrr weight is %u ****\n", p->wrr.weight);
