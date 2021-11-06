@@ -154,6 +154,7 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
 static struct task_struct *pick_next_task_wrr(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
+	printk("pick_next_task_wrr\n");
     struct wrr_rq *wrr_rq = &rq->wrr;
     if(list_empty(&wrr_rq->queue_head)) {
         /* If wrr runqueue is empty, not able to pick next task. Just return NULL.  */
@@ -185,7 +186,8 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
     }
     else {
         /* Timeslice expired -> reset timeslice and requeue this task */
-        list_del(&wrr_se->node);
+        printk("timeslice expiere!\n");
+		list_del(&wrr_se->node);
         wrr_se->timeslice = wrr_se->weight * WRR_TIMESLICE;
         list_add_tail(&wrr_se->node, &wrr_rq->queue_head);
 
@@ -211,6 +213,11 @@ static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 	//wrr_se->timeslice=wrr_se->weight*WRR_TIMESLICE;
 	//printk("switched_to\n");	
 }
+static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flags)
+{
+
+}
+
 const struct sched_class wrr_sched_class = {
     .next = &fair_sched_class,
     .enqueue_task = enqueue_task_wrr,
@@ -224,6 +231,6 @@ const struct sched_class wrr_sched_class = {
 
 	.set_curr_task = set_curr_task_wrr,	//used in setschedule
 	.switched_to = switched_to_wrr,		//used in setschedule
-
+	.check_preempt_curr = check_preempt_curr_wrr,
 
 };

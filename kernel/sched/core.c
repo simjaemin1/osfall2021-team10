@@ -4262,7 +4262,9 @@ change:
 
 	/* Run balance callbacks after we've adjusted the PI chain: */
 	balance_callback(rq);
+	printk("balance_callback\n");	//OS  This msg is printed
 	preempt_enable();
+	printk("safely returned!\n");	//OS  This msg is not printed..
 
 	return 0;
 }
@@ -6814,7 +6816,20 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
 
     return weight;
 }
-
+/*DEBUGING PURPOSE*/
+SYSCALL_DEFINE0(sched_getweight)
+{
+	struct task_struct *p;
+    p = get_current();
+    printk("**** task name is %s ****\n",p->comm);
+    printk("**** task pid  is %d ****\n",p->pid);
+    printk("**** task wrr weight is %u ****\n", p->wrr.weight);
+	printk("**** task policy  %d ****\n", p->policy);
+	printk("**** task prio %d ****\n", p->prio);
+	printk("********\n");
+    return (unsigned int)p->pid;
+}
+/*
 SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 {
     int weight;
@@ -6835,4 +6850,4 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
     rcu_read_unlock();
 
     return weight;
-}
+}*/
