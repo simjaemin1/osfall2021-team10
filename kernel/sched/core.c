@@ -46,9 +46,6 @@
 #include <asm/unistd.h>
 #include <linux/sched/wrr.h>
 
-#define WRR_MAX_WEIGHT 20
-#define WRR_MIN_WEIGHT  1
-
 DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
 
 /*
@@ -4039,6 +4036,37 @@ static int __sched_setscheduler(struct task_struct *p,
 	int reset_on_fork;
 	int queue_flags = DEQUEUE_SAVE | DEQUEUE_MOVE | DEQUEUE_NOCLOCK;
 	struct rq *rq;
+    
+    struct cpumask new_mask;
+    const struct cpumask *cpu_valid_mask = cpu_active_mask;
+    int dest_cpu;
+/***************************/
+    if ((task_cpu(p) == CPU_WITHOUT_WRR) && p->policy == SCHED_WRR) {
+        /* Set affinity */
+        sched_getaffinity(p->pid, &new_mask); 
+        cpumask_clear_cpu(CPU_WITHOUT_WRR, &new_mask);
+        sched_setaffinity(p->pid, &new_mask);
+        
+        /* Lock and Migrate. Copy from __set_cpus_allowed_ptr  */
+        dest_cpu = cpumask_any(&new_mask);
+        rq = task_rq_lock(p, &rf);
+        update_rq_clock(rq);
+        if (task_running(rq, p) || p->state == TASK_WAKING) {
+            struct migration_arg arg = { p, dest_cpu };
+            task_rq_unlock(rq, p, &rf);
+            stop_one_cpu(cpu_of(rq), migration_cpu_stop, &arg);
+            tlb_migrate_finish(p->mm);
+        } else if (task_on_rq_queued(p)) {
+            rq = move_queued_task(rq, &rf, p, dest_cpu);
+            task_rq_unlock(rq, p, &rf);
+        }
+        else {
+            task_rq_unlock(rq, p, &rf);
+        }
+    }
+
+
+/***************************/
 
 	/* The pi code expects interrupts enabled */
 	BUG_ON(pi && in_interrupt());

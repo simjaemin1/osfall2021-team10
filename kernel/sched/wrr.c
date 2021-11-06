@@ -123,6 +123,9 @@ void trigger_load_balance_wrr(struct rq *rq)
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {  
 	//printk("enqueue_task_wrr\n");
+    if(cpu_of(rq) == CPU_WITHOUT_WRR) {
+        printk("enqueue_task_wrr in cpu %d!!!\n", CPU_WITHOUT_WRR);
+    }
     struct wrr_rq *wrr_rq = &rq->wrr;
     struct sched_wrr_entity *wrr_se = &p->wrr;
 
