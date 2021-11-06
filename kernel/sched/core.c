@@ -2188,8 +2188,8 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 {
 	p->on_rq			= 0;
 
-    p->wrr.weight       = 10;
-    p->wrr.on_rq        = 0;
+    //p->wrr.weight       = 10;
+    //p->wrr.on_rq        = 0;
     //p->wrr.time_slice   = 0;
 
 	p->se.on_rq			= 0;
@@ -2400,14 +2400,13 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		 */
 		p->sched_reset_on_fork = 0;
 	}
-
-	if (dl_prio(p->prio)) {
+    if (p->policy == SCHED_WRR) {
+        p->sched_class = &wrr_sched_class;
+    } else if (dl_prio(p->prio)) {
 		put_cpu();
 		return -EAGAIN;
 	} else if (rt_prio(p->prio)) {
 		p->sched_class = &rt_sched_class;
-	} else if (p->policy == SCHED_WRR) {
-		p->sched_class = &wrr_sched_class;
 	} else {
         p->sched_class = &fair_sched_class;
     }
@@ -3059,7 +3058,7 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq->idle_balance = idle_cpu(cpu);
 	trigger_load_balance(rq);
-    trigger_load_balance_wrr(rq);
+    //trigger_load_balance_wrr(rq);
 #endif
 	rq_last_tick_reset(rq);
 }
@@ -4001,12 +4000,12 @@ static void __setscheduler(struct rq *rq, struct task_struct *p,
 	if (keep_boost)
 		p->prio = rt_effective_prio(p, p->prio);
 
-	if (dl_prio(p->prio))
+    if (p->policy == SCHED_WRR)
+        p->sched_class = &wrr_sched_class;
+    else if (dl_prio(p->prio))
 		p->sched_class = &dl_sched_class;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
-	else if (p->policy == SCHED_WRR) 
-		p->sched_class = &wrr_sched_class;
     else
         p->sched_class = &fair_sched_class;
 }
@@ -6787,7 +6786,7 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
     struct task_struct *p;
     struct rq *rq;
     struct wrr_rq *wrr_rq;
-    uid_t is_root
+    uid_t is_root;
 
     if(pid < 0 || weight < WRR_MIN_WEIGHT || weight > WRR_MAX_WEIGHT) {
         printk(KERN_ERR "ERROR : Invalid argument\n");
@@ -6825,7 +6824,7 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
     return weight;
 }
 /*DEBUGING PURPOSE*/
-SYSCALL_DEFINE0(sched_getweight)
+/*SYSCALL_DEFINE0(sched_getweight)
 {
 	struct task_struct *p;
     p = get_current();
@@ -6836,8 +6835,8 @@ SYSCALL_DEFINE0(sched_getweight)
 	printk("**** task prio %d ****\n", p->prio);
 	printk("********\n");
     return (unsigned int)p->pid;
-}
-/*
+}*/
+
 SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
 {
     int weight;
@@ -6859,4 +6858,4 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
     rcu_read_unlock();
 
     return weight;
-}*/
+}

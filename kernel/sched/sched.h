@@ -138,7 +138,7 @@ static inline int rt_policy(int policy)
 
 static inline int wrr_policy(int policy)
 {
-	return policy == SCEHD_WRR;
+	return policy == SCHED_WRR;
 }
 static inline int dl_policy(int policy)
 {

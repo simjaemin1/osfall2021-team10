@@ -122,7 +122,7 @@ void trigger_load_balance_wrr(struct rq *rq)
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {  
-	printk("enqueue_tsk_wrr\n");
+	//printk("enqueue_task_wrr\n");
     struct wrr_rq *wrr_rq = &rq->wrr;
     struct sched_wrr_entity *wrr_se = &p->wrr;
 
@@ -150,15 +150,17 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
     wrr_rq->total_weight -= wrr_se->weight;
 
     sub_nr_running(rq, 1);
+    //printk("dequeue_task_wrr\n");
     resched_curr(rq);    
 }
 
 static struct task_struct *pick_next_task_wrr(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
-	printk("pick_next_task_wrr\n");
+	//printk("pick_next_task_wrr\n");
     struct wrr_rq *wrr_rq = &rq->wrr;
     if(list_empty(&wrr_rq->queue_head)) {
         /* If wrr runqueue is empty, not able to pick next task. Just return NULL.  */
+        //printk("pick_next_task_wrr : return NULL\n");
         return NULL;
     }
 
@@ -187,7 +189,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
     }
     else {
         /* Timeslice expired -> reset timeslice and requeue this task */
-        printk("timeslice expiere!\n");
+        //printk("timeslice expired!\n");
 		list_del(&wrr_se->node);
         wrr_se->timeslice = wrr_se->weight * WRR_TIMESLICE;
         list_add_tail(&wrr_se->node, &wrr_rq->queue_head);
@@ -199,7 +201,9 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 static void task_fork_wrr(struct task_struct *p)
 {
     /* Not included in rt.c. included in fair.c  */
-    return;
+    if(p == NULL) return;
+    p->wrr.weight = p->real_parent->wrr.weight;
+    p->wrr.timeslice = p->wrr.weight * WRR_TIMESLICE;
 }
 static void set_curr_task_wrr(struct rq *rq)
 {
@@ -214,24 +218,81 @@ static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 	//wrr_se->timeslice=wrr_se->weight*WRR_TIMESLICE;
 	//printk("switched_to\n");	
 }
+
+static int select_task_rq_wrr(struct task_struct *p, int cpu, int sd_flag, int flags)
+{
+    // TODO
+    int iter_cpu;
+    int min_cpu;
+    int min_total_weight = 0xFFFFFFFF;
+    struct wrr_rq *curr_rq;
+
+    if(cpu != CPU_WITHOUT_WRR)
+        return cpu;
+
+    rcu_read_lock();
+    for_each_online_cpu(iter_cpu) {
+        if(cpu == CPU_WITHOUT_WRR)
+            continue;
+        curr_rq = &(cpu_rq(iter_cpu)->wrr);
+        if(curr_rq->total_weight < min_total_weight) {
+            min_cpu = iter_cpu;
+            min_total_weight = curr_rq->total_weight;
+        }
+    }
+    rcu_read_unlock();
+    return min_cpu;
+}
 static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-
 }
 
+static void yield_task_wrr(struct rq *rq)
+{
+}
+
+static void update_curr_wrr(struct rq *rq)
+{
+}
+
+static void migrate_task_rq_wrr(struct task_struct *p)
+{
+}
+
+static void rq_online_wrr(struct rq *rq)
+{
+}
+
+static void rq_offline_wrr(struct rq *rq)
+{
+}
+static void task_woken_wrr(struct rq *rq, struct task_struct *p)
+{
+}
+
+static void task_dead_wrr(struct task_struct *p) 
+{
+}
 const struct sched_class wrr_sched_class = {
     .next = &fair_sched_class,
     .enqueue_task = enqueue_task_wrr,
     .dequeue_task = dequeue_task_wrr,
-
+    .yield_task = yield_task_wrr,
     .pick_next_task = pick_next_task_wrr,
     .put_prev_task = put_prev_task_wrr,
+    .update_curr = update_curr_wrr,
     
+    .select_task_rq = select_task_rq_wrr,
+    .migrate_task_rq = migrate_task_rq_wrr,
+    .rq_online = rq_online_wrr,
+    .rq_offline = rq_offline_wrr,
+    .task_woken = task_woken_wrr,
+    .set_cpus_allowed = set_cpus_allowed_common,
+
     .task_tick = task_tick_wrr,
     .task_fork = task_fork_wrr,
-
 	.set_curr_task = set_curr_task_wrr,	//used in setschedule
 	.switched_to = switched_to_wrr,		//used in setschedule
 	.check_preempt_curr = check_preempt_curr_wrr,
-
+    .task_dead = task_dead_wrr, 
 };

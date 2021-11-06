@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <stdlib.h>
-#include <linux/syscalls.h>
+#include <sys/syscall.h>
 #include <stdio.h>
 
 int main(int argc, char *argv[])
