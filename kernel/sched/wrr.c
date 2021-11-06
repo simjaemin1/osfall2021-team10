@@ -198,7 +198,19 @@ static void task_fork_wrr(struct task_struct *p)
     /* Not included in rt.c. included in fair.c  */
     return;
 }
+static void set_curr_task_wrr(struct rq *rq)
+{
+	//struct sched_wrr_entity *wrr_se = &p->wrr;	
+	//printk("set_curr_task_wrr\n");
+}
 
+static void switched_to_wrr(struct rq *rq, struct task_struct *p)
+{
+	//struct sched_wrr_entity *wrr_se=&p->wrr;
+	//wrr_se->weight=10;	
+	//wrr_se->timeslice=wrr_se->weight*WRR_TIMESLICE;
+	//printk("switched_to\n");	
+}
 const struct sched_class wrr_sched_class = {
     .next = &fair_sched_class,
     .enqueue_task = enqueue_task_wrr,
@@ -209,4 +221,9 @@ const struct sched_class wrr_sched_class = {
     
     .task_tick = task_tick_wrr,
     .task_fork = task_fork_wrr,
+
+	.set_curr_task = set_curr_task_wrr,	//used in setschedule
+	.switched_to = switched_to_wrr,		//used in setschedule
+
+
 };
