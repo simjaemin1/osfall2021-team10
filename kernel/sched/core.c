@@ -4038,34 +4038,51 @@ static int __sched_setscheduler(struct task_struct *p,
 	struct rq *rq;
     
     struct cpumask new_mask;
-    const struct cpumask *cpu_valid_mask = cpu_active_mask;
+
+    const struct cpumask *mask_cpu = (cpumask_of(CPU_WITHOUT_WRR));
+    struct cpumask p_mask;
+    struct cpumask mask;
+
     int dest_cpu;
 /***************************/
-    if ((task_cpu(p) == CPU_WITHOUT_WRR) && p->policy == SCHED_WRR) {
-        /* Set affinity */
+   // if ((task_cpu(p) == CPU_WITHOUT_WRR) && p->policy == SCHED_WRR) {
+    if (p->policy == SCHED_WRR) {
+        //Set affinity
+        
+        sched_getaffinity(p->pid, &p_mask);
+        cpumask_andnot(&mask, &p_mask, mask_cpu);
+        sched_setaffinity(p->pid, &mask);
+        
+        /*
         sched_getaffinity(p->pid, &new_mask); 
         cpumask_clear_cpu(CPU_WITHOUT_WRR, &new_mask);
         sched_setaffinity(p->pid, &new_mask);
-        
-        /* Lock and Migrate. Copy from __set_cpus_allowed_ptr  */
-        dest_cpu = cpumask_any(&new_mask);
-        rq = task_rq_lock(p, &rf);
-        update_rq_clock(rq);
-        if (task_running(rq, p) || p->state == TASK_WAKING) {
-            struct migration_arg arg = { p, dest_cpu };
-            task_rq_unlock(rq, p, &rf);
-            stop_one_cpu(cpu_of(rq), migration_cpu_stop, &arg);
-            tlb_migrate_finish(p->mm);
-        } else if (task_on_rq_queued(p)) {
-            rq = move_queued_task(rq, &rf, p, dest_cpu);
-            task_rq_unlock(rq, p, &rf);
+        */
+        if(task_cpu(p) == CPU_WITHOUT_WRR) {
+            //Lock and Migrate. Copy from __set_cpus_allowed_ptr
+            //dest_cpu = cpumask_any(&new_mask);
+            dest_cpu = 0;
+            rq = task_rq_lock(p, &rf);
+            update_rq_clock(rq);
+            if (task_running(rq, p) || p->state == TASK_WAKING) {
+                struct migration_arg arg = { p, dest_cpu };
+                task_rq_unlock(rq, p, &rf);
+                stop_one_cpu(cpu_of(rq), migration_cpu_stop, &arg);
+                tlb_migrate_finish(p->mm);
+            } else if (task_on_rq_queued(p)) {
+                rq = move_queued_task(rq, &rf, p, dest_cpu);
+                task_rq_unlock(rq, p, &rf);
+            }
+            else {
+                task_rq_unlock(rq, p, &rf);
+            }
+            //balance_callback(rq);
+            //preempt_enable();
+            //return 0;
         }
-        else {
-            task_rq_unlock(rq, p, &rf);
-        }
+        if(task_cpu(p) == CPU_WITHOUT_WRR)
+            printk("SCHED_SETSCHEDULER : CPU IS %d\n", CPU_WITHOUT_WRR);
     }
-
-
 /***************************/
 
 	/* The pi code expects interrupts enabled */
@@ -4289,9 +4306,9 @@ change:
 
 	/* Run balance callbacks after we've adjusted the PI chain: */
 	balance_callback(rq);
-	printk("balance_callback\n");	//OS  This msg is printed
+	//printk("balance_callback\n");	//OS  This msg is printed
 	preempt_enable();
-	printk("safely returned!\n");	//OS  This msg is not printed..
+	//printk("safely returned!\n");	//OS  This msg is not printed..
 
 	return 0;
 }

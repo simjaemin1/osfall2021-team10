@@ -9,6 +9,6 @@
 #define WRR_TIMESLICE (HZ / 100)
 #define WRR_PERIOD    2 * HZ
 
-#define CPU_WITHOUT_WRR 0
+#define CPU_WITHOUT_WRR 1
 
 #endif
