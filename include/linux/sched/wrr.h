@@ -7,7 +7,7 @@
 #define WRR_MIN_WEIGHT  1
 
 #define WRR_TIMESLICE (HZ / 100)
-#define WRR_PERIOD    2 * HZ
+#define WRR_PERIOD    20 * HZ
 
 #define CPU_WITHOUT_WRR 1
 

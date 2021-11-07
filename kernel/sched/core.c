@@ -4038,49 +4038,32 @@ static int __sched_setscheduler(struct task_struct *p,
 	struct rq *rq;
     
     struct cpumask new_mask;
-
-    const struct cpumask *mask_cpu = (cpumask_of(CPU_WITHOUT_WRR));
-    struct cpumask p_mask;
-    struct cpumask mask;
-
-    int dest_cpu;
+    int prev_cpu;
 /***************************/
-   // if ((task_cpu(p) == CPU_WITHOUT_WRR) && p->policy == SCHED_WRR) {
     if (policy == SCHED_WRR) {
         //Set affinity
-        printk("**********SCHED_WRR************ : task_cpu(p) = %d\n", task_cpu(p));
-        sched_getaffinity(p->pid, &p_mask);
-        cpumask_andnot(&mask, &p_mask, mask_cpu);
-        sched_setaffinity(p->pid, &mask);
-        
-        /*
+        prev_cpu = task_cpu(p);
         sched_getaffinity(p->pid, &new_mask); 
         cpumask_clear_cpu(CPU_WITHOUT_WRR, &new_mask);
         sched_setaffinity(p->pid, &new_mask);
-        */
-        if(task_cpu(p) == CPU_WITHOUT_WRR) {
+        
+        if(prev_cpu == CPU_WITHOUT_WRR) {
             //Lock and Migrate. Copy from __set_cpus_allowed_ptr
-            dest_cpu = 0;
-            printk("**********SCHED_WRR************ : dest_cpu = %d\n", dest_cpu);
             rq = task_rq_lock(p, &rf);
             update_rq_clock(rq);
             if (task_running(rq, p) || p->state == TASK_WAKING) {
-                struct migration_arg arg = { p, dest_cpu };
+                struct migration_arg arg = { p, 0 };
                 task_rq_unlock(rq, p, &rf);
                 stop_one_cpu(cpu_of(rq), migration_cpu_stop, &arg);
                 tlb_migrate_finish(p->mm);
             } else if (task_on_rq_queued(p)) {
-                rq = move_queued_task(rq, &rf, p, dest_cpu);
+                rq = move_queued_task(rq, &rf, p, 0);
                 task_rq_unlock(rq, p, &rf);
             }
             else {
                 task_rq_unlock(rq, p, &rf);
             }
-            //balance_callback(rq);
-            //preempt_enable();
-            //return 0;
         }
-        printk("SCHED_SETSCHEDULER : CPU IS %d\n", dest_cpu);
     }
 /***************************/
 

@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
     struct sched_param param = {0};
 
 // 1, 5, 7, 11, 15, 19
-    for(int i = 1; i < 20; i++) {
+    for(int i = 1; i < 11; i++) {
         int weight = i;
         if(fork() == 0) {
             int res = syscall(SCHED_SETSCHEDULER, getpid(), SCHED_WRR, &param);
