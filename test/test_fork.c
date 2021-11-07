@@ -22,14 +22,14 @@ int main(int argc, char *argv[]) {
 
     if(fork() == 0) {
         retval = syscall(SCHED_SETSCHEDULER, getpid(), SCHED_WRR, &param);
-        printf("SCHED_SETSCHEDULER RESULT : %d\n", retval);
-        retval = syscall(SCHED_SETWEIGHT, getpid(), 17);
+        //printf("SCHED_SETSCHEDULER RESULT : %d\n", retval);
+        //retval = syscall(SCHED_SETWEIGHT, getpid(), 17);
         if(retval < 0) {
             printf("SCHED_SETWEIGHT ERROR\n");
             exit(-1);
         }
 
-        retval = syscall(SCHED_GETWEIGHT, getpid());
+        //retval = syscall(SCHED_GETWEIGHT, getpid());
         if(retval < 0) {
             printf("SCHED_GETWEIGHT ERROR\n");
             exit(-1);

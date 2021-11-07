@@ -28,13 +28,13 @@ int main() {
     struct sched_param param = {0};
     syscall(SCHED_SETSCHEDULER, getpid(), SCHED_WRR, &param);
     syscall(SCHED_SETWEIGHT, getpid(), 17);
-    syscall(SCHED_GETWEIGHT, getpid());
+    //syscall(SCHED_GETWEIGHT, getpid());
     print(1);
 
     if(fork() == 0) {
         retval = syscall(SCHED_SETSCHEDULER, getpid(), SCHED_WRR, &param);
         syscall(SCHED_SETWEIGHT, getpid(), 14);
-        syscall(SCHED_GETWEIGHT, getpid());
+        //syscall(SCHED_GETWEIGHT, getpid());
         print(0);
     }
 }

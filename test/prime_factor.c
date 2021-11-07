@@ -34,31 +34,32 @@ void prime_factor(int num) {
 int main(int argc, char *argv[]) {
     int num = 1029385961;
     int retval = 0;
-    clock_t start, end;
-    float time;
+    struct timespec begin, end;
+    double time_interval;
     struct sched_param param = {0};
 
 // 1, 5, 7, 11, 15, 19
     for(int w = 1; w < 20; w += 4) {
         if(fork() == 0) {
             int res = syscall(SCHED_SETSCHEDULER, getpid(), SCHED_WRR, &param);
-            printf("SCHED_SETSCHEDULER RESULT : %d\n", res);
+            //printf("SCHED_SETSCHEDULER RESULT : %d\n", res);
             retval = syscall(SCHED_SETWEIGHT, getpid(), w);
             if(retval < 0) {
                 printf("SCHED_SETWEIGHT ERROR\n");
                 exit(-1);
             }
 
-            retval = syscall(SCHED_GETWEIGHT, getpid());
+            /*retval = syscall(SCHED_GETWEIGHT, getpid());
             if(retval < 0) {
                 printf("SCHED_GETWEIGHT ERROR\n");
                 exit(-1);
-            }
-            start = clock();
+            }*/
+            clock_gettime(CLOCK_MONOTONIC, &begin);
             prime_factor(num);
-            end = clock();
-            time = (float)(end - start)/CLOCKS_PER_SEC;
-            printf("Weight is %d and spend time %fsec\n", w, time);
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            time_interval = (double)(end.tv_sec - begin.tv_sec) +
+                (double)(end.tv_nsec - begin.tv_nsec) / 1000000000;
+            printf("Weight is %d and spend time %fsec\n", w, time_interval);
             exit(0);         
         }
     }

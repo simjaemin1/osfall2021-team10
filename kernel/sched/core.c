@@ -1,5 +1,5 @@
 /*
- /  kernel/sched/core.c
+ *  kernel/sched/core.c
  *
  *  Core kernel scheduler code and related syscalls
  *
@@ -3055,7 +3055,7 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq->idle_balance = idle_cpu(cpu);
 	trigger_load_balance(rq);
-    //trigger_load_balance_wrr(rq);
+    trigger_load_balance_wrr(rq);
 #endif
 	rq_last_tick_reset(rq);
 }
@@ -4048,7 +4048,7 @@ static int __sched_setscheduler(struct task_struct *p,
    // if ((task_cpu(p) == CPU_WITHOUT_WRR) && p->policy == SCHED_WRR) {
     if (p->policy == SCHED_WRR) {
         //Set affinity
-        
+        printk("**********SCHED_WRR************ : task_cpu(p) = %d\n", task_cpu(p));
         sched_getaffinity(p->pid, &p_mask);
         cpumask_andnot(&mask, &p_mask, mask_cpu);
         sched_setaffinity(p->pid, &mask);
@@ -4060,8 +4060,8 @@ static int __sched_setscheduler(struct task_struct *p,
         */
         if(task_cpu(p) == CPU_WITHOUT_WRR) {
             //Lock and Migrate. Copy from __set_cpus_allowed_ptr
-            //dest_cpu = cpumask_any(&new_mask);
             dest_cpu = 0;
+            printk("**********SCHED_WRR************ : dest_cpu = %d\n", dest_cpu);
             rq = task_rq_lock(p, &rf);
             update_rq_clock(rq);
             if (task_running(rq, p) || p->state == TASK_WAKING) {
@@ -4080,8 +4080,7 @@ static int __sched_setscheduler(struct task_struct *p,
             //preempt_enable();
             //return 0;
         }
-        if(task_cpu(p) == CPU_WITHOUT_WRR)
-            printk("SCHED_SETSCHEDULER : CPU IS %d\n", CPU_WITHOUT_WRR);
+        printk("SCHED_SETSCHEDULER : CPU IS %d\n", dest_cpu);
     }
 /***************************/
 
@@ -6855,7 +6854,7 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
             rcu_read_unlock();
             return -EINVAL;
         }
-        printk("Permission Accepted\n");
+        //printk("Permission Accepted\n");
 
         rq = task_rq(p);
         wrr_rq = &rq->wrr;
@@ -6895,9 +6894,6 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
     rcu_read_lock();
 
     p = find_process_by_pid(pid);
-    printk("**** task name is %s ****\n",p->comm);
-    printk("**** task pid  is %d ****\n",p->pid);
-    printk("**** task wrr weight is %u ****\n", p->wrr.weight);
     weight = p->wrr.weight;
 
     rcu_read_unlock();

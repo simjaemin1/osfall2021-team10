@@ -39,11 +39,12 @@ int main(int argc, char *argv[]) {
     struct sched_param param = {0};
 
 // 1, 5, 7, 11, 15, 19
-    int w = atoi(argv[1]);
+    for(int i = 1; i < 20; i++) {
+        int weight = i;
         if(fork() == 0) {
-            retval = syscall(SCHED_SETSCHEDULER, getpid(), SCHED_WRR, &param);
-            //printf("SCHED_SETSCHEDULER RESULT : %d\n", retval);
-            retval = syscall(SCHED_SETWEIGHT, getpid(), w);
+            int res = syscall(SCHED_SETSCHEDULER, getpid(), SCHED_WRR, &param);
+            //printf("SCHED_SETSCHEDULER RESULT : %d\n", res);
+            retval = syscall(SCHED_SETWEIGHT, getpid(), weight);
             if(retval < 0) {
                 printf("SCHED_SETWEIGHT ERROR\n");
                 exit(-1);
@@ -59,8 +60,9 @@ int main(int argc, char *argv[]) {
             clock_gettime(CLOCK_MONOTONIC, &end);
             time_interval = (double)(end.tv_sec - begin.tv_sec) +
                 (double)(end.tv_nsec - begin.tv_nsec) / 1000000000;
-            printf("Weight is %d and spend time %fsec\n", w, time_interval);
+            printf("Weight is %d and spend time %fsec\n", weight, time_interval);
             exit(0);         
         }
+    }
     return 0;
 }

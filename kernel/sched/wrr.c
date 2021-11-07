@@ -25,7 +25,9 @@ void trigger_load_balance_wrr(struct rq *rq)
     unsigned long curr_time = get_jiffies_64();
 
     /* values need for max & min wrr_rq  */
-    int cpu, max_cpu, min_cpu;
+    int cpu;
+    int max_cpu = 0;
+    int min_cpu = 0;
     unsigned int min_total_weight = 0xFFFFFFFF;
     unsigned int max_total_weight = 0;
     struct wrr_rq *curr_rq;
@@ -56,7 +58,7 @@ void trigger_load_balance_wrr(struct rq *rq)
 
     rcu_read_lock();
     for_each_online_cpu(cpu) {
-        if(cpu == CPU_WITHOUT_WRR) 
+        if(cpu == CPU_WITHOUT_WRR)
             continue;
         curr_rq = &(cpu_rq(cpu)->wrr);
         if(curr_rq->total_weight > max_total_weight) {
@@ -73,10 +75,12 @@ void trigger_load_balance_wrr(struct rq *rq)
     rcu_read_unlock();
     
     if(max_cpu == min_cpu || !max_wrr_rq || !min_wrr_rq) {
-        /* Case 1   : Only 1 cpu exists. Don't need to migrate  */
+        /* Casie 1   : Don't need to migrate  */
         /* Case 2,3 : No CPUs available  */
         return;
     }
+    
+    printk("****Load Balancing : Reached this part*****\n");
 
     /* traverse and migrate if possible */
     local_irq_save(flags);
@@ -111,9 +115,11 @@ void trigger_load_balance_wrr(struct rq *rq)
         set_task_cpu(p, min_cpu);
         activate_task(cpu_rq(min_cpu), p, 0);
         resched_curr(cpu_rq(min_cpu));
+        printk("***********Load Balancing : %d to %d\n", max_cpu, min_cpu);
     }
     else {
         /* No proper task to migrate. Do nothing */
+        printk("***********Load Balancing : No proper task\n");
     }
 
     double_rq_unlock(cpu_rq(max_cpu), cpu_rq(min_cpu));
@@ -122,10 +128,7 @@ void trigger_load_balance_wrr(struct rq *rq)
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {  
-	//printk("enqueue_task_wrr\n");
-    if(cpu_of(rq) == CPU_WITHOUT_WRR) {
-        printk("enqueue_task_wrr in cpu %d!!!\n", CPU_WITHOUT_WRR);
-    }
+    printk("**ENQ : cpu_of(rq) is %d and task_cpu(p) is %d**\n", cpu_of(rq), task_cpu(p));
     struct wrr_rq *wrr_rq = &rq->wrr;
     struct sched_wrr_entity *wrr_se = &p->wrr;
 
