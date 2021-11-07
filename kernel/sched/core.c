@@ -6840,7 +6840,13 @@ SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)
     rcu_read_lock();
 
     p = find_process_by_pid(pid);
-    is_root = current_uid().val;
+    if(p==NULL)
+	{
+		printk(KERN_ERR "ERROR: No such process pid\n");
+		return ESRCH;
+	}
+
+	is_root = current_uid().val;
     if(is_root) {
         /* Permission Denied */
         printk(KERN_ERR "Permission Denied : You are not admin\n");
@@ -6894,7 +6900,17 @@ SYSCALL_DEFINE1(sched_getweight, pid_t, pid)
     rcu_read_lock();
 
     p = find_process_by_pid(pid);
-    weight = p->wrr.weight;
+    if(p==NULL)
+	{
+		printk(KERN_ERR "ERROR: No such process pid\n");
+		return ESRCH;
+	}
+	if(p->policy != SCHED_WRR) {
+            printk(KERN_ERR "ERROR : Policy is not sched_wrr\n");
+            rcu_read_unlock();
+            return -EINVAL;
+    }
+	weight = p->wrr.weight;
 
     rcu_read_unlock();
 
