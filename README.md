@@ -162,3 +162,4 @@ max_rq에 enqueue되어있는 sched_wrr_entity를 traverse하며 min_rq로 migra
 
 1. 다양한 fair와 rt 클래스에서 사용하는 priority들에 대해 알게 되었다. priority만 4개가 있고 nice변수까지 있어서 setscheduler를 볼 때 엄청 헷갈렸는데 각각이 무슨 역할을 하는 값인지 정확히 알게 되었다.
 2. 스케줄러가 스케줄링을 하는 과정에 대해 대략적으로 알게 되었다.
+3. 여태까지 했던 프로젝트 중 가장 어려웠다. 커널 디버깅이 상당히 어렵고, 시간이 많이 걸린다는 것을 알게 되었다.
