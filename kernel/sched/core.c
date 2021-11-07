@@ -4046,7 +4046,7 @@ static int __sched_setscheduler(struct task_struct *p,
     int dest_cpu;
 /***************************/
    // if ((task_cpu(p) == CPU_WITHOUT_WRR) && p->policy == SCHED_WRR) {
-    if (p->policy == SCHED_WRR) {
+    if (policy == SCHED_WRR) {
         //Set affinity
         printk("**********SCHED_WRR************ : task_cpu(p) = %d\n", task_cpu(p));
         sched_getaffinity(p->pid, &p_mask);
