@@ -3,14 +3,18 @@
 
 ## 0. How to build kernel
 다음과 같은 directory 상황에서 tizen-5.0-rpi3 폴더를 kernel path라고 가정한다.
+또 정상적으로 qemu가 돌아가는 상황이라고 가정한다.
 ```bash
 tizen-kernel
 ├── tizen-5.0-rpi3
 ├── tizen-image
 └── mnt_dir
 ```
-
-우선 -----------.
+```
+cd tizen-kernel/tizen-5.0-rpi3
+git pull origin proj2
+sudo sh run.sh
+```
 
 ## 1. High Level Implementation - WRR
 ### 1.1 Define SCHED_WRR
@@ -39,25 +43,22 @@ struct sched_wrr_entity는 다음과 같은 변수와 함께 정의되어있다.
 다른 process에서 systemcall로 pid를 통해 특정 process가 가진 wrr policy에 대한 weight값을 get하거나 set하게 위해 두 systemcall을 추가한다.
 
 * include/linux/syscalls.h
-
-    아래 두 줄을 추가한다.
-
-    `asmlinkage long sys_sched_setweight(pid_t pid, int weight)`
-
-    `asmlinkage long sys_sched_getweight(pid_t pid)`
+    아래 두 줄을 추가한다.  
+    `asmlinkage long sys_sched_setweight(pid_t pid, int weight)`  
+    `asmlinkage long sys_sched_getweight(pid_t pid)`  
 * arch/arm/tools/syscalls.tbl
-    아래 두 줄을 추가한다.
-    `398 common sched_setweight sys_sched_setweight`
-    `399 common sched_getweight sys_sched_getweight`
+    아래 두 줄을 추가한다.  
+    `398 common sched_setweight sys_sched_setweight`  
+    `399 common sched_getweight sys_sched_getweight`  
 * arch/arm64/include/asm/unistd.h
-    `#define __NR_compat_syscalls   400`
+    `#define __NR_compat_syscalls   400`  
     으로 수정한다.
 * arch/arm64/include/asm/unistd32.h
-    아래 네 줄을 추가한다.
-    `#define __NR_sched_setweight 398`
-    `__SYSCALL(__NR_sched_setweight, sys_sched_setweight)`
-    `#define __NR_sched_getweight 399`
-    `__SYSCALL(__NR_sched_getweight, sys_sched_getweight)`
+    아래 네 줄을 추가한다.  
+    `#define __NR_sched_setweight 398`  
+    `__SYSCALL(__NR_sched_setweight, sys_sched_setweight)`  
+    `#define __NR_sched_getweight 399`  
+    `__SYSCALL(__NR_sched_getweight, sys_sched_getweight)`  
 
 사전작업 후 kernel/sched/core.c에
     `SYSCALL_DEFINE2(sched_setweight, pid_t, pid, int, weight)`
@@ -127,7 +128,7 @@ core.c 에서는 scheduling과 관련된 다양한 작업을 하는 함수들이
 6. static int __sched_setscheduler
     sched_setscheduler systemcall을 호출할 때 호출되는 함수이다. policy가 WRR로 바뀔 경우 cpu 1번을 사용하지 않도록 설정한다.
 7. static void __setscheduler
-    __sched_setscheduler에서 호출도니다. policy가 SCHED_WRR을 가질 경우 wrr_sched_class를 따르도록 설정하였다.
+    __sched_setscheduler에서 호출된다. policy가 SCHED_WRR을 가질 경우 wrr_sched_class를 따르도록 설정하였다.
     
 <a name ="load_balancing"/>
 
@@ -150,7 +151,7 @@ Load Balancing의 주기는 2000ms이다. 즉 scheduler_tick 함수가 call될�
 두 max_rq와 min_rq를 lock 해준다.
 max_rq에 enqueue되어있는 sched_wrr_entity를 traverse하며 min_rq로 migrate 가능한 task 중 weight값이 가장 큰 것을 찾는다. 다음 네 가지 조건을 만족해야 한다.
 1. 현재 running중인 task는 migrate할 수 없다.
-2. cpu가 가능해야한다???
+2. cpu가 해당 task를 받아들이고 실행할 수 있어야 하므로 allowance를 점검한다.
 3. migrate한 이후 total_weight값의 역전이 일어나거나 같아지면 안된다.
 4. 위 세가지를 만족하는 task 중 weight가 가장 커야한다.
 
@@ -158,8 +159,41 @@ max_rq에 enqueue되어있는 sched_wrr_entity를 traverse하며 min_rq로 migra
 만약 존재할 경우 task를 runqueue에 대해 deactivate하고 해당 task_struct에 cpu 값을 옮길 min_cpu로 바꾼 후 다시 activate하고, min_cpu의 runqueue를 reschedule 해준다.
 이후 unlock하고 함수를 마친다.
 
-## 3. Something Learned & etc
+## 3. Investigation
+#### 실험 내용
+bal이라는 프로세스로 테스트를 진행하였다. 테스트 내용은 먼저 현재 돌아가는 process를 SCHED_WRR로 바꿔준 다음, weight이 1~20인 서로 다른 20개의 child process를 fork하여 prime_factorization을 각각 실행하였다. factorization하는 수는 매우 큰 소수로 끝까지 loop을 돌도록 하였다.  
+wait_pid를 하지 않으므로 parent process는 미리 끝나고 child process가 background로 돌게 된다.  
+`./bal 20` `./bal 8` 등으로 얼마만큼의 weight까지 진행할지 정할 수 있다. argument에 20을 넣으면 1부터 20까지 20개의 child process, 8인 경우 1부터 8까지 8개의 process가 돌아간다.  
+결과는 일의 자리 미만에서 반올림을 하였다.
+
+#### 결과
+Weight :  1 / time : 428s
+Weight :  2 / time : 421s
+Weight :  3 / time : 407s
+Weight :  4 / time : 398s
+Weight :  5 / time : 379s
+Weight :  6 / time : 374s
+Weight :  7 / time : 366s
+Weight :  8 / time : 351s
+Weight :  9 / time : 345s
+Weight : 10 / time : 332s
+Weight : 11 / time : 319s
+Weight : 12 / time : 305s
+Weight : 13 / time : 291s
+Weight : 14 / time : 275s
+Weight : 15 / time : 265s
+Weight : 16 / time : 264s
+Weight : 17 / time : 241s
+Weight : 18 / time : 222s
+Weight : 19 / time : 213s
+Weight : 20 / time : 211s
+
+#### 고찰, 그 외
+1. 예상한 대로 weight이 큰 경우 queue front에 있을 때 돌아가는 시간이 길게 되므로 빨리 끝나게 된다. 하지만 시작할때 process가 7~8개로 적게 도는 경우 가끔 값의 역전이 일어나기도 한다. 이는 각 cpu의 wrr_rq의 total_weight값이 작은 경우에는 weight이 작아도 빨리 실행될 수 있음을 의미한다.
+2. 중간에 kernel panic이 일어나는 경우가 가끔 있다. child process가 2개 남았을 때 자주 일어나는데, msg를 보면 fair(cfs)의 process들이 cpu를 차지하면서 충돌이 발생하는 것 같다. 이 부분은 시간관계상 해결하지 못했다.
+
+## 4. Lesson learned
 
 1. 다양한 fair와 rt 클래스에서 사용하는 priority들에 대해 알게 되었다. priority만 4개가 있고 nice변수까지 있어서 setscheduler를 볼 때 엄청 헷갈렸는데 각각이 무슨 역할을 하는 값인지 정확히 알게 되었다.
-2. 스케줄러가 스케줄링을 하는 과정에 대해 대략적으로 알게 되었다.
-3. 여태까지 했던 프로젝트 중 가장 어려웠다. 커널 디버깅이 상당히 어렵고, 시간이 많이 걸린다는 것을 알게 되었다.
+2. 커널 프로그래밍 & 디버깅은 굉장히 에러가 발생하기 쉽고, 에러가 발생할 경우 kernel panic등의 문제가 자주 발생하며 커널 자체가 무겁고 컴파일이 오래걸리는 프로그램이다 보니 하나하나 확인하는 것도 오래 걸렸다. 커널 프로그래밍은 커널의 구조와 디테일에 해박한 지식이 있어야 하고, 매우 정교하고 섬세한 작업이 필요하다는 것도 알게 되었다.
+3. 커널이 task 요청에 대해 어떻게 응답하는지, 각각 다른 cpu들을 어떻게 통합하여 task를 주고받는지, 같은 cpu 내에서도 어떻게 task를 주고받는지, 그때 필요한 lock과 데이터 주고받기, 과정들 등등 코드를 읽고 직접 코딩과 디버깅을 하면서 abtract한 이론보다 훨씬 많은 것을 알게 되었다.
