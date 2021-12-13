@@ -1,5 +1,3 @@
-
-
 struct gps_location {
 	int lat_integer;
 	int lat_fractional;
@@ -7,3 +5,5 @@ struct gps_location {
 	int lng_fractional;
 	int accuracy;
 };
+
+struct gps_location *systemloc;

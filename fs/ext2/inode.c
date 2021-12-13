@@ -39,9 +39,22 @@
 #include "ext2.h"
 #include "acl.h"
 #include "xattr.h"
+#include <linux/spinlock.h>
+
+DEFINE_SPINLOCK(gps_lock);
 
 int ext2_set_gps_location(struct inode *inode) 
 {
+	ext2_inode_info *ei = EXT2_I(inode);
+	
+	spin_lock(&gps_lock);
+	ei->i_lat_integer = systemloc->lat_integer;
+	ei->i_lat_fractional = systemloc->lat_fractional;
+	ei->i_lng_integer = systemloc->lng_integer;
+	ei->i_lng_fractional = systemloc->lng_fractional;
+	ei->i_accuracy = systemloc->accuracy;
+	spin_unlock(&gps_lock);
+
     return 0;
 }
 
