@@ -661,6 +661,12 @@ struct ext2_mount_options {
  * second extended file system inode data in memory
  */
 struct ext2_inode_info {
+    __u32   i_lat_integer;
+    __u32   i_lat_fractional;
+    __u32   i_lng_integer;
+    __u32   i_lng_fractional;
+    __u32   i_accuracy;
+
 	__le32	i_data[15];
 	__u32	i_flags;
 	__u32	i_faddr;

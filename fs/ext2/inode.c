@@ -45,7 +45,7 @@ int ext2_set_gps_location(struct inode *inode)
     return 0;
 }
 
-int ext2_get_gps_location(struct inode *inode, struct gps_location loc)
+int ext2_get_gps_location(struct inode *inode, struct gps_location *loc)
 {
     return 0;
 }
