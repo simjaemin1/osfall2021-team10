@@ -6,4 +6,4 @@ struct gps_location {
 	int accuracy;
 };
 
-struct gps_location *systemloc;
+struct gps_location systemloc;

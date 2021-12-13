@@ -18,10 +18,10 @@ int valid_location(struct gps_location *loc)
 SYSCALL_DEFINE1(set_gps_location, struct gps_location __user *, loc)
 {
   if(!valid_location(loc))
-  	return EINVAL;
+  	return -EINVAL;
 	spin_lock(&lock);
 	copy_from_user(&systemloc, loc);
-  spin_unlock(&lock);
+    spin_unlock(&lock);
 	return 0;
 }
 
