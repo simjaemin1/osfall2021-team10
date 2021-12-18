@@ -1,6 +1,17 @@
 ### OSFALL2021 TEAM10 PROJ4
 
 ## 0. How to build kernel
+### 0.1 configuration change
+arch/arm64/configs/tizen_bcmrpi_defconfig 파일에서 
+`CONFIG_EXT2_FS is not set`을 지우고 `CONFIG_EXT2_FS=y, ` `# CONFIG_EXT@_FS_XATTR is not set`을 추가한다.
+
+----수정 필요----
+```
+cd tizen-kernel/tizen-5.0-rpi3
+git pull origin proj4
+sudo sh compile.sh
+sudo sh ./qemu.sh
+```
 
 
 ## 1. High Level Implementation
@@ -73,7 +84,7 @@ inode_operations 구조체에 int(*set_gps_location)(struct inode *), int (*get_
 ext2 파일시스템에서 file을 만들 때 호출하는 함수인 ext2_create함수가 ext2_set_gps_location함수를 호출하여 파일을 만들 때 현재 systemlocation의 위도 경도 값을 해당 파일의 inode가 저장하도록 한다.
 
 
-2. Evaluation
-2.1 Test Files
-2.1.1 test/file_loc.c
+##2. Evaluation
+###2.1 Test Files
+####2.1.1 test/file_loc.c
 파일의 이름 값을 argument로 받은 후 get_gps_location 시스템 콜을 호출하여 해당 파일의 inode에 저장되어 있는 위도 경도 값 얻은 후 해당 값을 콘솔에 출력한다. 해당 위도 경도 값에 해당하는 구글 맵 링크도 출력한다.
