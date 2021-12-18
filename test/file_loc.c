@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 	else{
 		printf("----------File info---------\n");
 		printf("GPS coordinate:	(latitude,longitude)/accuracy = (%d.%d,	%d.%d)/%d\n", loc.lat_integer, loc.lat_fractional, loc.lng_integer, loc.lat_fractional, loc.accuracy);
-		printf("Google map linki:	https://www.google.co.kr/maps/place/@%d.%d,%d.%d,%dz/\n", loc.lat_integer, loc.lat_fractional, loc.lng_integer, loc.lat_fractional, loc.accuracy);
+		printf("Google map link:	https://www.google.co.kr/maps/place/@%d.%d,%d.%d,%dz/\n", loc.lat_integer, loc.lat_fractional, loc.lng_integer, loc.lat_fractional, loc.accuracy);
 	}
 	return 0;
 }
