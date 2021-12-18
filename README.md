@@ -46,10 +46,10 @@ argument로 gps_location struct를 받아서 해당 location정보가 valid한�
 lat_frac, lng_frac이 0과 999999사이에 있는 값인지 확인하고, lat_int가 -90부터 90사이의 값인지 확인하고 lng_int가 -180과 180사이의 값인지 확인하고 accuracy가 양수인지 확인한다.
 
 #### 1.3.2 long set_gps_location(struct gps_location __user *loc)
-loc값이 valid한지 확인하고 valid하다면 systemloc의 위도, 경도, accuracy 값을 loc의 해당 값으로 바꾼다.
+loc값이 valid한지 확인하고 valid하다면 systemlocation의 위도, 경도, accuracy 값을 loc의 해당 값으로 바꾼다. systemlocation의 값을 수정할 때에는 해당 값이 다른 곳에서 참조되거나 수정되는 것을 막기 위해 spinlock을 잡고 수정한다.
 
 #### 1.3.3 long get_gps_location(const char __user *pathname, struct gps_location __user *loc)
-pathname에 해당하는 파일을 찾고 해당 파일의 inode에 저장되어 있는 location 정보를 읽은 후 systemloc의 location과 비교하여 파일에 저장된 위치가 accuracy범위 내에 있다면 해당 location struct의 값들을 loc 버퍼에 넣어준다.
+pathname이 valid한지 확인한 후 user에 있는 pathname data를 kernerl data에 복사해온다. pathname에 해당하는 파일의 inode값을 찾고 오류가 발생했는지 검사한다. 오류가 발생하지 않았다면 해당 파일이 gps_coordinate system을 사용하는지 확인하고 사용한다면 get_gps_location함수를 호출하여 inode에 저장되어 있는 location 정보를 읽은 후 systemloc의 location과 비교하여 파일에 저장된 위치가 accuracy범위 내에 있다면 해당 location struct의 값들을 loc 버퍼에 넣어준다.
 
 ### 1.4 fs/ext2/ext2.h
 memory에 있는 inode data를 저장하는 ext2_inode_info 구조체에 __u32 자료형 변수 i_lat_integer, i_lat_fractional, i_lng_integer, i_lng_fractional, i_accuracy를 추가한다.
@@ -69,3 +69,11 @@ argument로 받은 inode값을 현재의 systemlocation 값으로 설정해주�
 ### 1.7 include/linux/fs.h
 inode_operations 구조체에 int(*set_gps_location)(struct inode *), int (*get_gps_location)(struct inode*, struct gps_location*) 두 개의 변수를 추가한다.
 
+### 1.8 fs/ext2/namei.c
+ext2 파일시스템에서 file을 만들 때 호출하는 함수인 ext2_create함수가 ext2_set_gps_location함수를 호출하여 파일을 만들 때 현재 systemlocation의 위도 경도 값을 해당 파일의 inode가 저장하도록 한다.
+
+
+2. Evaluation
+2.1 Test Files
+2.1.1 test/file_loc.c
+파일의 이름 값을 argument로 받은 후 get_gps_location 시스템 콜을 호출하여 해당 파일의 inode에 저장되어 있는 위도 경도 값 얻은 후 해당 값을 콘솔에 출력한다. 해당 위도 경도 값에 해당하는 구글 맵 링크도 출력한다.
