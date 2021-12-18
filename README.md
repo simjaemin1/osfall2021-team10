@@ -77,7 +77,7 @@ const struct inode_opearations ext2_file_inode_operations 구조체의 set_gps_l
 #### 1.6.1 ext2_set_gps_location(struct inode *inode)
 argument로 받은 inode값을 현재의 systemlocation 값으로 설정해주는 함수이다. EXT2_I(inode)를 이용하여 ext2 파일 시스템 memory의 inode인 ext2_inode_info에 접근한 후 i_lat_integer, i_lat_fractional, i_lng_integer, i_lng_fractional, accuracy 값을 systemlocation의 위도, 경도, accuracy값으로 바꿔준다.
 
-####1.6.2 ext2_get_gps_location(struct inode *inode, struct gps_location *loc)
+#### 1.6.2 ext2_get_gps_location(struct inode *inode, struct gps_location *loc)
 위와 마찬가지로 ext2_inode_info 값을 얻은 후 i_lat_integer, i_lat_fractional, i_lng_integer, i_lng_fractional, accuracy 값을 gps_location 버퍼에 넣어준다.
 
 ### 1.7 include/linux/fs.h
@@ -86,8 +86,55 @@ inode_operations 구조체에 int(*set_gps_location)(struct inode *), int (*get_
 ### 1.8 fs/ext2/namei.c
 ext2 파일시스템에서 file을 만들 때 호출하는 함수인 ext2_create함수가 ext2_set_gps_location함수를 호출하여 파일을 만들 때 현재 systemlocation의 위도 경도 값을 해당 파일의 inode가 저장하도록 한다.
 
+## 2. Fixed Point Operation - 수정 필수
+### 2.1 Formula to get distance between two points using latitude and longitude
+아주 정확하다고 알려진 공식에는 acos, atan 등을 사용하는데 이것을 fixed point operation으로 나타내기 위해서 필요한 식들이 너무 많고 복잡하여 정밀도를 포기하고 최대한 간단하게 구성하기 위해 근사식들을 찾아보았다.  
+지구를 완벽한 구 라고 가정하고, 위도는 다른 변수 없이 위도 간 거리는 항상 각도차이에 비례하므로 간단하게 구성하고, 경도 차이는 위도 식과 같으면서 (경도 차이에 비례한다는 경우가 같다) 위도의 cos값에 비례하므로 식을 간단히 구성할 수 있었다.  
+위도, 경도는 보통 radian을 쓰지 않고 degree를 사용하므로 radian으로 보정해주는 것이 필요하였다.  
+다만 여기서 식이 경도 차이는 두 점 중 어느 하나의 위도를 기준으로 경도차이를 계산하므로 사실 정확하지 않다.  
+이를 어느정도 보정하기 위해 두 위도의 평균을 cos의 각도로 사용해주었다. 즉 경도차이가 심할수록 값의 정밀도가 크게 떨어질 것이다.  
+```
+지구 반지름 R = 6371000(m)
+PI = 3.141592
+위도 차이에 대한 거리 = R * (PI / 180) * |deg1 - deg2| = 111195 * |lat1 - lat2| (m)
+경도 차이에 대한 거리 = cos ((lat1 + lat2)/2 * (PI / 180)) * 111195 * |lng1 - lng2| (m)
+PI/180 = 0.017453 (degree to radian)
+```
 
-##2. Evaluation
-###2.1 Test Files
-####2.1.1 test/file_loc.c
+### 2.2 Struct for fixed point value
+fixed point의 원활한 계산을 위해 새로운 구조체를 정의하였다.
+fraction 부분의 최대 값이 999,999 인 만큼 multiplication 등의 계산을 할 때 int로만 할 경우 overflow가 날 수 있으므로 long long int를 통해 64bit으로 늘려 overflow를 최대한 방지해주었다.
+```
+typedef struct _fixed {
+    long long int 
+} fixed;
+```
+
+### 2.3 Constants for calculating distance
+float이나 double과 같은 소수점 연산 및 사용이 제한되어 있으므로   
+필요하다고 판단된 constant들을 fixed로 만들어주었다. 먼저 지구를 완벽한 구로 가정하였을 때, radian으로 위도가 1 차이날 때 거리인
+-추가할것
+
+### 2.4 add, sub, mul, div
+add, sub, mul은 그리 어렵지 않았다. fractional part는 항상 양수이고 999,999보다 작도록만 보장해주면 되었다.  
+div는 많은 경우를 고려하면 너무 복잡해지므로, integer로 나누는 경우만 생각해주었다. div함수가 사용되는 경우가 cos밖에 없고 이때는 integer로만 나누므로 fixed point를 정밀도만큼 곱하여 큰 integer 값으로 바꿔주고 나누어 계산하였다. 이것도 매우 합리적인 것이 radius는 값이 -2pi에서 2pi 사이이므로 overflow를 걱정하지 않아도 되어 간단하게 구성하였다.
+
+### 2.5 pow_f, factorial
+둘 다 cos 계산에서만 사용되는데, 경우가 한정적이라는 것이 식을 간단하게 구성하는데 도움이 많이 되었다.
+pow_f는 곱하는 수 들이 수가 작고, factorial도 작은 integer만 생각하면 되므로 overflow를 걱정하지 않아도 되었다.
+pow_f는 mul을 이용하여 recursive로 간단하게 구성하였고, factorial도 recursive로 integer를 계산하였다.
+
+### 2.6 cos_f, getdistance
+#### 2.6.1 cos_f
+cos은 생각보다 적은 iteration 만으로도 값이 잘 수렴하였다. -추가필요
+#### 2.6.2 getdistance
+사실 위도 경도가 많이 차이나건, 적게 차이나건 모든 상황에 대해서 정확한 값을 구하기는 힘들다고 생각하였다. 구글맵이나 네이버 지도 같은 것을 사용할 때는 위도와 경도 차이가 아주 작은 경우가 많을 것이라고 예상이 되었으므로 위도 경도 차이가 큰 경우의 정밀도를 포기하였다. 이 경우에도 값이 overflow가 나지 않는 한 accessible 여부는 잘 판단해 줄 것이다. (gps의 정확도가 엄청나게 좋지 않아 accuracy가 엄청나게 큰 경우를 제외하고) 
+
+## 3. Evaluation
+### 3.1 Test Files
+#### 3.1.1 test/file_loc.c
 파일의 이름 값을 argument로 받은 후 get_gps_location 시스템 콜을 호출하여 해당 파일의 inode에 저장되어 있는 위도 경도 값 얻은 후 해당 값을 콘솔에 출력한다. 해당 위도 경도 값에 해당하는 구글 맵 링크도 출력한다.
+
+## 4. Lesson Learned
+1. 위도와 경도를 통해 두 점 간의 거리를 계산하는 것 자체는 사실 그렇게 복잡하지 않았지만, fixed point를 사용하면서 문제가 어렵게 되었으며 계산 정밀도에 대해 고민을 많이 하게 되었다. 실제로 테스트 해보니 삼각함수 자체는 굉장히 빠른속도로 수렴하고 (polynomial로 근사할 경우 나누는 항에 팩토리얼이 있어 매우 빠르게 수렴하는 것이라는 글을 보았다), acos, asin, atan 등의 연산은 다항함수로 표현하면 빠르게 수렴하지 않으므로 보통 다른 방식을 많이 사용한다는 것을 알게 되었다. 문제는 위도와 경도를 통한 거리계산에서 아주 정확한 식은 항상 acos이나 atan을 가지고 있었고 fixed point operation을 여러 계산을 지원하도록 아주 정밀하게 짠다면 물론 가장 정확한 결과를 얻을 수 있었겠지만 그것이 쉽지 않은 상황이었다. 그런 상황에서 정밀도가 떨어지는 acos, atan 등을 사용하게 되었을 때가 더 정확할지 아니면 연산 하나 하나가 정밀도가 조금 떨어지는 대신 간단한 연산들 만으로 대략적 값을 구할 수 있는 식을 쓸지 고민이 많이 되었다. 결국 쉽게 가기 위해 근사적으로 구성하는 것이 좋겠다 생각 하여 최대한 식들을 간단하게 구성하였다. Numerical analysis가 정밀도와 계산속도 등 고려해야 할 옵션이 많아 생각보다 굉장히 어려운 문제이며 공부해보면 재미있는 주제가 될 수 있겠다고 생각하였다.
+2. 
