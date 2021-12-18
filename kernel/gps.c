@@ -12,7 +12,7 @@ int valid_location(struct gps_location *loc)
   int lat_frac = (0 <= loc->lat_frac) && (loc->lat_frac <= 999999);
   int lng_frac = (0 <= loc->lng_frac) && (loc->lng_frac <= 999999);
   int lat_int = (-90 <= loc->lat_integer) && (loc->lat_integer <= 90);
-  int lon_int = (-180 <= loc->lng_integer) && (loc->lng_integer <= 180);
+  int lng_int = (-180 <= loc->lng_integer) && (loc->lng_integer <= 180);
   int acc = (0 <= loc->accuracy);
   
   return lat_frac && lng_frac && lat_int && lon_int && acc;
@@ -20,12 +20,18 @@ int valid_location(struct gps_location *loc)
 
 SYSCALL_DEFINE1(set_gps_location, struct gps_location __user *, loc)
 {
-  if(!valid_location(loc))
-  	return -EINVAL;
-  spin_lock(&lock);
-  copy_from_user(&systemloc, loc, sizeof(struct gps_location));
-  spin_unlock(&lock);
-  return 0;
+	struct gps_location k_loc;
+	copy_from_user(&k_loc, loc, sizeof(struct gps_location));
+	if(!valid_location(k_loc))
+		return -EINVAL;
+	spin_lock(&lock);
+	systemloc.lat_integer = k_loc.lat_integer;
+	systemloc.lat_frac = k_loc.lat_frac;
+	systemloc.lng_integer = k_loc.lng_integer;
+	systemloc.lng_frac = k_loc.lng_frac;
+	systemloc.accuracy = k_loc.accuracy;
+	spin_unlock(&lock);
+	return 0;
 }
 
 

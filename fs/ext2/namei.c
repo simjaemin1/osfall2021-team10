@@ -90,7 +90,7 @@ struct dentry *ext2_get_parent(struct dentry *child)
  * the directory cache entry for the new file, but it
  * is so far negative - it has no inode.
  *
- * If the create succeeds, we fill in the inode information
+  If the create succeeds, we fill in the inode information
  * with d_instantiate(). 
  */
 static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode, bool excl)
@@ -115,6 +115,7 @@ static int ext2_create (struct inode * dir, struct dentry * dentry, umode_t mode
 		inode->i_fop = &ext2_file_operations;
 	}
 	mark_inode_dirty(inode);
+	inode->i_op->ext2_set_gps_location(inode);	//OS proj4
 	return ext2_add_nondir(dentry, inode);
 }
 
@@ -375,7 +376,7 @@ static int ext2_rename (struct inode * old_dir, struct dentry * old_dentry,
 		if (!new_de)
 			goto out_dir;
 		ext2_set_link(new_dir, new_de, new_page, old_inode, 1);
-		new_inode->i_ctime = current_time(new_inode);
+		new_inode->i_ctime = current_time(new_inode);	//OS_proj4
 		if (dir_de)
 			drop_nlink(new_inode);
 		inode_dec_link_count(new_inode);
