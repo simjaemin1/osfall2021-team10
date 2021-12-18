@@ -3,11 +3,9 @@
 ## 0. How to build kernel
 ### 0.1 configuration change
 arch/arm64/configs/tizen_bcmrpi_defconfig 파일에서
-다음을 삭제한다
-`CONFIG_EXT2_FS is not set`
-다음을 추가한다
+`CONFIG_EXT2_FS is not set`를 삭제한다.
 `CONFIG_EXT2_FS=y, `
-`# CONFIG_EXT@_FS_XATTR is not set`
+`# CONFIG_EXT@_FS_XATTR is not set` 두 줄을 추가하고
 `CONFIG_EXT4_USE_FOR_EXT2=y`를 `# CONFIG_EXT4_USE_FOR_EXT2 is not set`로 바꾼다.
 
 ----수정 필요----
