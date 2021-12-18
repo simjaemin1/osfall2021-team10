@@ -58,9 +58,21 @@ int ext2_set_gps_location(struct inode *inode)
     return 0;
 }
 
+
 int ext2_get_gps_location(struct inode *inode, struct gps_location *loc)
 {
-    return 0;
+	ext2_inode_info *ei = EXT2_I(inode);
+	if(ei->accuracy=0)
+		return -ENODEV;
+
+	loc->lat_integer = ei->i_lat_integer;
+	loc->lat_fractional = ei->i_lat_fractional;
+	loc->lng_integer = ei->i_lng_integer;
+	loc->lng_fractional = ei->lng_fractional;
+	loc->accuracy = ei->accuracy;
+
+	return 0;
+
 }
 
 static int __ext2_write_inode(struct inode *inode, int do_sync);
