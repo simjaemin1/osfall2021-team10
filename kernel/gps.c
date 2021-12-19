@@ -193,7 +193,7 @@ long long int get_dist(struct gps_location* loc1, struct gps_location* loc2)
   lat1.int_f = (long long int)loc1->lat_integer;
   lat1.frac_f = (long long int)loc1->lat_fractional;
   lng1.int_f = (long long int)loc1->lng_integer;
-  lng1.frac_f = (long long int)loc1->lng_fractiona
+  lng1.frac_f = (long long int)loc1->lng_fractional;
   lat2.int_f = (long long int)loc2->lat_integer;
   lat2.frac_f = (long long int)loc2->lat_fractional;
   lng2.int_f = (long long int)loc2->lng_integer;
