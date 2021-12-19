@@ -40,19 +40,20 @@
 #include "acl.h"
 #include "xattr.h"
 #include <linux/spinlock.h>
+#include <linux/gps.h>
 
 DEFINE_SPINLOCK(gps_lock);
 
 int ext2_set_gps_location(struct inode *inode) 
 {
-	ext2_inode_info *ei = EXT2_I(inode);
+	struct ext2_inode_info *ei = EXT2_I(inode);
 	
 	spin_lock(&gps_lock);
-	ei->i_lat_integer = systemloc->lat_integer;
-	ei->i_lat_fractional = systemloc->lat_fractional;
-	ei->i_lng_integer = systemloc->lng_integer;
-	ei->i_lng_fractional = systemloc->lng_fractional;
-	ei->i_accuracy = systemloc->accuracy;
+	ei->i_lat_integer = systemloc.lat_integer;
+	ei->i_lat_fractional = systemloc.lat_fractional;
+	ei->i_lng_integer = systemloc.lng_integer;
+	ei->i_lng_fractional = systemloc.lng_fractional;
+	ei->i_accuracy = systemloc.accuracy;
 	spin_unlock(&gps_lock);
 
     return 0;
@@ -61,15 +62,15 @@ int ext2_set_gps_location(struct inode *inode)
 
 int ext2_get_gps_location(struct inode *inode, struct gps_location *loc)
 {
-	ext2_inode_info *ei = EXT2_I(inode);
-	if(ei->accuracy=0)
+	struct ext2_inode_info *ei = EXT2_I(inode);
+	if(ei->i_accuracy=0)
 		return -ENODEV;
 
 	loc->lat_integer = ei->i_lat_integer;
 	loc->lat_fractional = ei->i_lat_fractional;
 	loc->lng_integer = ei->i_lng_integer;
-	loc->lng_fractional = ei->lng_fractional;
-	loc->accuracy = ei->accuracy;
+	loc->lng_fractional = ei->i_lng_fractional;
+	loc->accuracy = ei->i_accuracy;
 
 	return 0;
 

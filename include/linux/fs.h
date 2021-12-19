@@ -35,6 +35,7 @@
 #include <linux/delayed_call.h>
 #include <linux/uuid.h>
 #include <linux/errseq.h>
+#include <linux/gps.h>
 
 #include <asm/byteorder.h>
 #include <uapi/linux/fs.h>
@@ -1729,6 +1730,7 @@ struct file_operations {
 	ssize_t (*dedupe_file_range)(struct file *, u64, u64, struct file *,
 			u64);
 } __randomize_layout;
+
 
 struct inode_operations {
 	struct dentry * (*lookup) (struct inode *,struct dentry *, unsigned int);
