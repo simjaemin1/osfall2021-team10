@@ -39,6 +39,7 @@
 #include <linux/bitops.h>
 #include <linux/init_task.h>
 #include <linux/uaccess.h>
+#include <linux/gps.h>
 
 #include "internal.h"
 #include "mount.h"
@@ -406,6 +407,13 @@ static inline int do_inode_permission(struct inode *inode, int mask)
 int __inode_permission(struct inode *inode, int mask)
 {
 	int retval;
+
+    if (inode->i_op->get_gps_location) {
+        struct gps_location* loc = inode->i_op->get_gps_location(inode, loc);
+        retval = LocationCompare(loc, systemloc);
+        if(!retval)
+            return -EACCES;
+    }
 
 	if (unlikely(mask & MAY_WRITE)) {
 		/*

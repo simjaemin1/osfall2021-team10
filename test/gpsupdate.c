@@ -1,23 +1,10 @@
 #include <stdio.h>
-#include <sys.syscall.h>
+#include <stdlib.h>
+#include <sys/syscall.h>
 #include <linux/gps.h>
 
 #define SET_GPS_LOCATION 398
-
-
-int main()
-{
-	struct gps_location loc={1,1,1,1,1};//change
-
-	change_current_location(&loc, 1, 2, 1);
-	set_location(&loc);	
-	return 0;
-}
-
-void change_current_location(struct gps_location *loc, int lat_change, int lng_change, int newaccuracy)
-{	
-	//TODO
-}
+#define CORRECTION 1000000
 
 void set_location(struct gps_location *loc)
 {
@@ -28,3 +15,19 @@ void set_location(struct gps_location *loc)
 		return -1;
 	}
 }
+
+int main(int argc, char *argv[])
+{
+    if(argc != 6)
+    {
+        printf("Usage: \n");
+    }
+    
+    struct gps_location loc = { atoi(argv[1]), atoi(argv[2]), 
+        atoi(argv[3]), atoi(argv[4]), atoi(argv[5]) };
+
+	set_location(&loc);	
+	return 0;
+}
+
+

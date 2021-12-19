@@ -1603,12 +1603,6 @@ static int __ext2_write_inode(struct inode *inode, int do_sync)
 		raw_inode->i_gid_high = 0;
 	}
 
-    raw_inode->i_lat_integer = cpu_to_le32(inode->i_lat_integer);
-    raw_inode->i_lat_fractional = cpu_to_le32(inode->i_lat_fractional);
-    raw_inode->i_lng_integer = cpu_to_le32(inode->i_lng_integer);
-    raw_inode->i_lng_fractional = cpu_to_le32(inode->i_lng_fractional);
-    raw_inode->i_accuracy = cpu_to_le32(inode->i_accuracy);
-
 
 	raw_inode->i_links_count = cpu_to_le16(inode->i_nlink);
 	raw_inode->i_size = cpu_to_le32(inode->i_size);
@@ -1617,6 +1611,13 @@ static int __ext2_write_inode(struct inode *inode, int do_sync)
 	raw_inode->i_mtime = cpu_to_le32(inode->i_mtime.tv_sec);
 
 	raw_inode->i_blocks = cpu_to_le32(inode->i_blocks);
+
+    raw_inode->i_lat_integer = cpu_to_le32(ei->i_lat_integer);
+    raw_inode->i_lat_fractional = cpu_to_le32(ei->i_lat_fractional);
+    raw_inode->i_lng_integer = cpu_to_le32(ei->i_lng_integer);
+    raw_inode->i_lng_fractional = cpu_to_le32(ei->i_lng_fractional);
+    raw_inode->i_accuracy = cpu_to_le32(ei->i_accuracy);
+
 	raw_inode->i_dtime = cpu_to_le32(ei->i_dtime);
 	raw_inode->i_flags = cpu_to_le32(ei->i_flags);
 	raw_inode->i_faddr = cpu_to_le32(ei->i_faddr);
