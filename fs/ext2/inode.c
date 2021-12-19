@@ -42,7 +42,6 @@
 #include <linux/spinlock.h>
 #include <linux/gps.h>
 
-DEFINE_SPINLOCK(gps_lock);
 
 int ext2_set_gps_location(struct inode *inode) 
 {

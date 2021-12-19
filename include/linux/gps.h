@@ -10,5 +10,5 @@ struct gps_location {
 };
 
 extern struct gps_location systemloc;
-
+extern spinlock_t gps_lock;
 #endif
