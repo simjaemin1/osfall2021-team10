@@ -85,11 +85,16 @@ argument로 받은 inode값을 현재의 systemlocation 값으로 설정해주�
 #### 1.6.2 ext2_get_gps_location(struct inode *inode, struct gps_location *loc)
 위와 마찬가지로 ext2_inode_info 값을 얻은 후 i_lat_integer, i_lat_fractional, i_lng_integer, i_lng_fractional, accuracy 값을 gps_location 버퍼에 넣어준다.
 
+#### 1.6.3 update gps_location when file is modified & convert struct between disk and memory
+file이 create되거나 modify 될 때 inode 구조체의 ctime이나 mtime이 바뀌게 된다는 것을 생각하고 fs/ext2 디렉토리 내 파일들 중 ctime이나 mtime을 바꾸는 함수들을 모두 읽어보고, 이중에 필요한 함수들에 대해서 gps_location을 최신화 해주는 함수를 추가해주었다.  
+ext2.h에 있는 두 구조체는 disk에 있을 때와 memory에 올라와 있을 때 두 경우 모두 gps_location에 대한 정보가 필요했는데, 이때 서로 다른 타입을 사용하므로 convert해주는 부분을 inode.c에서 찾게 되어 inode 구조체의 다른 변수들이 convert 될 때 이들도 동일한 방식으로 해주었다.
+
 ### 1.7 include/linux/fs.h
 inode_operations 구조체에 int(*set_gps_location)(struct inode *), int (*get_gps_location)(struct inode*, struct gps_location*) 두 개의 변수를 추가한다.
 
 ### 1.8 fs/ext2/namei.c
-ext2 파일시스템에서 file을 만들 때 호출하는 함수인 ext2_create함수가 ext2_set_gps_location함수를 호출하여 파일을 만들 때 현재 systemlocation의 위도 경도 값을 해당 파일의 inode가 저장하도록 한다.
+ext2 파일시스템에서 file을 만들 때 호출하는 함수인 ext2_create함수가 ext2_set_gps_location함수를 호출하여 파일을 만들 때 현재 systemlocation의 위도 경도 값을 해당 파일의 inode가 저장하도록 한다.  
+이 함수가 ext2_new_inode 함수를 call 하는 것을 보고 그 함수가 ctime을 current time으로 변경해주는 것을 보았으나 ialloc.c에 있는 이 함수는 다른 dir을 만들거나 link를 할 때도 자주 불리는 함수이므로 이 함수에 set gps를 하는 것은 불필요하다고 생각하여 ext2_create에만 넣어주었다.
 
 ## 2. Fixed Point Operation
 ### 2.1 Formula to get distance between two points using latitude and longitude
