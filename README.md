@@ -65,6 +65,11 @@ loc값이 valid한지 확인하고 valid하다면 systemlocation의 위도, 경�
 #### 1.3.3 long get_gps_location(const char __user *pathname, struct gps_location __user *loc)
 pathname이 valid한지 확인한 후 user에 있는 pathname data를 kernerl data에 복사해온다. pathname에 해당하는 파일의 inode값을 찾고 오류가 발생했는지 검사한다. 오류가 발생하지 않았다면 해당 파일이 gps_coordinate system을 사용하는지 확인하고 사용한다면 get_gps_location함수를 호출하여 inode에 저장되어 있는 location 정보를 읽은 후 systemloc의 location과 비교하여 파일에 저장된 위치가 accuracy범위 내에 있다면 해당 location struct의 값들을 loc 버퍼에 넣어준다.
 
+#### 1.3.4 int LocationCompare(struct gps_location *locA, struct gps_location *locB)
+두 gps 위치의 accuracy와 두 좌표간 실제 거리를 비교하여 접근 가능한지를 return한다.  
+중간에 사용하는 함수인 get_dist는 두 좌표간 거리의 제곱을 return하므로 비교할때도 두 accuracy의 합의 제곱과 비교한다.  
+distance가 accuracy의 합보다 더 작거나 같다면 accessible하므로 1을 return, 그렇지 않다면 0을 return한다.
+
 ### 1.4 fs/ext2/ext2.h
 memory에 있는 inode data를 저장하는 ext2_inode_info 구조체에 __u32 자료형 변수 i_lat_integer, i_lat_fractional, i_lng_integer, i_lng_fractional, i_accuracy를 추가한다.
 
@@ -86,7 +91,7 @@ inode_operations 구조체에 int(*set_gps_location)(struct inode *), int (*get_
 ### 1.8 fs/ext2/namei.c
 ext2 파일시스템에서 file을 만들 때 호출하는 함수인 ext2_create함수가 ext2_set_gps_location함수를 호출하여 파일을 만들 때 현재 systemlocation의 위도 경도 값을 해당 파일의 inode가 저장하도록 한다.
 
-## 2. Fixed Point Operation - 수정 필수
+## 2. Fixed Point Operation
 ### 2.1 Formula to get distance between two points using latitude and longitude
 아주 정확하다고 알려진 공식에는 acos, atan 등을 사용하는데 이것을 fixed point operation으로 나타내기 위해서 필요한 식들이 너무 많고 복잡하여 정밀도를 포기하고 최대한 간단하게 구성하기 위해 근사식들을 찾아보았다.  
 지구를 완벽한 구 라고 가정하고, 위도는 다른 변수 없이 위도 간 거리는 항상 각도차이에 비례하므로 간단하게 구성하고, 경도 차이는 위도 식과 같으면서 (경도 차이에 비례한다는 경우가 같다) 위도의 cos값에 비례하므로 식을 간단히 구성할 수 있었다.  
@@ -106,14 +111,17 @@ fixed point의 원활한 계산을 위해 새로운 구조체를 정의하였다
 fraction 부분의 최대 값이 999,999 인 만큼 multiplication 등의 계산을 할 때 int로만 할 경우 overflow가 날 수 있으므로 long long int를 통해 64bit으로 늘려 overflow를 최대한 방지해주었다.
 ```
 typedef struct _fixed {
-    long long int 
+    long long int int_f;
+    long long int frac_f;
 } fixed;
 ```
 
 ### 2.3 Constants for calculating distance
 float이나 double과 같은 소수점 연산 및 사용이 제한되어 있으므로   
-필요하다고 판단된 constant들을 fixed로 만들어주었다. 먼저 지구를 완벽한 구로 가정하였을 때, radian으로 위도가 1 차이날 때 거리인
--추가할것
+필요하다고 판단된 constant들을 fixed로 만들어주었다. 먼저 지구를 완벽한 구로 가정하였을 때, radian으로 위도가 1 차이날 때 거리가 6371000 * PI / 180 = 111195(m)이다.
+이는 경도를 계산할 때도 동일하게 적용된다.
+또한 PI/180 = 0.017453 이므로 이도 fixed 구조체로 만들어준다.  
+fractional part는 실제 값으로 사용할 때 값에 1,000,000을 나누어주어 사용하므로 보정한다는 의미로 CORRECTION (1000000LL)을 정의하여 사용하였다.
 
 ### 2.4 add, sub, mul, div
 add, sub, mul은 그리 어렵지 않았다. fractional part는 항상 양수이고 999,999보다 작도록만 보장해주면 되었다.  
@@ -126,9 +134,11 @@ pow_f는 mul을 이용하여 recursive로 간단하게 구성하였고, factoria
 
 ### 2.6 cos_f, getdistance
 #### 2.6.1 cos_f
-cos은 생각보다 적은 iteration 만으로도 값이 잘 수렴하였다. -추가필요
-#### 2.6.2 getdistance
-사실 위도 경도가 많이 차이나건, 적게 차이나건 모든 상황에 대해서 정확한 값을 구하기는 힘들다고 생각하였다. 구글맵이나 네이버 지도 같은 것을 사용할 때는 위도와 경도 차이가 아주 작은 경우가 많을 것이라고 예상이 되었으므로 위도 경도 차이가 큰 경우의 정밀도를 포기하였다. 이 경우에도 값이 overflow가 나지 않는 한 accessible 여부는 잘 판단해 줄 것이다. (gps의 정확도가 엄청나게 좋지 않아 accuracy가 엄청나게 큰 경우를 제외하고) 
+cos은 생각보다 적은 iteration 만으로도 값이 잘 수렴하였다. 테일러 급수를 이용하였는데, 약 10번의 iteration하면서 값을 해보니 8~9번부터 값이 변하지 않아 8항까지 더하였다.
+#### 2.6.2 get_dist
+사실 위도 경도가 많이 차이나건, 적게 차이나건 모든 상황에 대해서 정확한 값을 구하기는 힘들다고 생각하였다. 구글맵이나 네이버 지도 같은 것을 사용할 때는 위도와 경도 차이가 아주 작은 경우가 많을 것이라고 예상이 되었으므로 위도 경도 차이가 큰 경우의 정밀도를 포기하였다. 이 경우에도 값이 overflow가 나지 않는 한 accessible 여부는 잘 판단해 줄 것이다. (gps의 정확도가 엄청나게 좋지 않아 accuracy가 엄청나게 큰 경우를 제외하고)  
+sqrt 함수를 추가적으로 정의하는 것은 redundant하다고 판단하여 거리의 제곱을 return하도록 하였다. 마지막 compare 함수에서도 두 gps의 accuracy의 합의 제곱과 비교하면 될것이다. long long 변수가 생각보다 capacity가 매우 커서 제곱을 해도 상관 없다고 판단하였다.
+구글 맵을 이용하여 직접 약 1km 내외의 좌표들을 이용하여 실제 실험해보니 값이 생각보다 굉장히 정확하였다. 다만 다양한 범위에 대해 실험해보지는 않았다.
 
 ## 3. Evaluation
 ### 3.1 Test Files
