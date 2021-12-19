@@ -96,6 +96,9 @@ inode_operations 구조체에 int(*set_gps_location)(struct inode *), int (*get_
 ext2 파일시스템에서 file을 만들 때 호출하는 함수인 ext2_create함수가 ext2_set_gps_location함수를 호출하여 파일을 만들 때 현재 systemlocation의 위도 경도 값을 해당 파일의 inode가 저장하도록 한다.  
 이 함수가 ext2_new_inode 함수를 call 하는 것을 보고 그 함수가 ctime을 current time으로 변경해주는 것을 보았으나 ialloc.c에 있는 이 함수는 다른 dir을 만들거나 link를 할 때도 자주 불리는 함수이므로 이 함수에 set gps를 하는 것은 불필요하다고 생각하여 ext2_create에만 넣어주었다.
 
+### 1.9 fs/namei.c
+int __inode_permission 함수에서 inode->i_op->get_gps_location 함수 포인터가 존재하는지 먼저 체크하고, 존재한다면 해당 fs를 사용한다는 의미이므로 LocationCompare을 이용하여 체크하고, 거리가 멀다면 EACCES error를 return하도록 하여 permission을 두었다. inode_permission과 관련된 다른 함수에 implement해도 괜찮겠다고 생각했으나 중간부분에 implement 하였다.
+
 ## 2. Fixed Point Operation
 ### 2.1 Formula to get distance between two points using latitude and longitude
 아주 정확하다고 알려진 공식에는 acos, atan 등을 사용하는데 이것을 fixed point operation으로 나타내기 위해서 필요한 식들이 너무 많고 복잡하여 정밀도를 포기하고 최대한 간단하게 구성하기 위해 근사식들을 찾아보았다.  
