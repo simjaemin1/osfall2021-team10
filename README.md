@@ -18,20 +18,7 @@ git checkout proj4
 git pull origin proj4
 ```
 
-2. 이후 다음을 실행하여 컴파일을 하고 이미지 파일을 생성한다.
-```bash
-./build-rpi3-arm64.sh
-sudo ./scripts/mkbootimg_rpi3.sh
-```
-
-3. config 파일을 바꾼다.
-arch/arm64/configs/tizen_bcmrpi_defconfig 파일에서  
-`CONFIG_EXT2_FS is not set`를 삭제한다.  
-`CONFIG_EXT2_FS=y, `  
-`# CONFIG_EXT2_FS_XATTR is not set` 두 줄을 추가하고  
-`CONFIG_EXT4_USE_FOR_EXT2=y`를 `# CONFIG_EXT4_USE_FOR_EXT2 is not set`로 바꾼다.  
-
-4. 2번과 똑같은 코드를 이용하여 컴파일하고 boot.img, modules.img파일을 tizen-image디렉토리로 옮긴다.
+2. 이후 다음을 실행하여 컴파일을 하고 이미지 파일을 생성하고 생성된 boot.img, modules.img파일을 tizen-image디렉토리로 옮긴다.
 
 ```bash
 ./build-rpi3-arm64.sh
@@ -39,7 +26,7 @@ sudo ./scripts/mkbootimg_rpi3.sh
 sudo mv boot.img modules.img ../tizen-image/
 ```
 
-5. tizen-image에 압축파일을 해제하고, rootfs.img를 mnt_dir에 마운트한다.
+3. tizen-image에 압축파일을 해제하고, rootfs.img를 mnt_dir에 마운트한다.
 ```bash
 cd ../tizen-image
 tar xvzf tizen-unified_20181024.1_iot-headless-2parts-armv7l-rpi3.tar.gz
@@ -47,7 +34,7 @@ sudo mount rootfs.img ../mnt_dir
 cd ../tizen-5.0-rpi3
 ```
 
-6. test file을 compile하고 mnt_dir의 root디렉토리로 옮긴다.
+4. test file을 compile하고 mnt_dir의 root디렉토리로 옮긴다.
 ```bash
 cd test
 make
@@ -55,7 +42,7 @@ sh move.sh
 cd ..
 ```
 
-7. e2fsprogs를 컴파일하고 proj.fs파일을 만들고 옮긴다. mnt_dir의 root 디렉토리로 옮긴다.
+5. e2fsprogs를 컴파일하고 proj.fs파일을 만들고 옮긴다. mnt_dir의 root 디렉토리로 옮긴다.
 ```bash
 cd ./e2fsprogs
 ./configure
@@ -73,7 +60,7 @@ sudo losetup -d /dev/loop14
 sudo mv proj4.fs ../mnt_dir/root/
 ```
 
-8. /etc/fstab를 루트 파일시스템이 write를 할 수 있도록 바꾼다.
+6. /etc/fstab를 루트 파일시스템이 write를 할 수 있도록 바꾼다.
 다음과 같이 바꾼다.
 ```bash
 # <file system> <mount point>   <type>  <options>           <dump> <pass>
@@ -81,10 +68,10 @@ sudo mv proj4.fs ../mnt_dir/root/
 LABEL=system-data /opt          ext4    defaults,noatime    0      2
 ```
 
-9. qemu를 실행한다.  
+7. qemu를 실행한다.  
 `sudo ./qemu.sh`
 
-10. qemu shell 에서 proj4를 만들고 mount를 한다.
+8. qemu shell 에서 proj4를 만들고 mount를 한다.
 ```bash
 mkdir proj4;
 mount -o loop -t ext2 /root/proj4.fs /root/proj4
