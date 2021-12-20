@@ -409,10 +409,11 @@ int __inode_permission(struct inode *inode, int mask)
 	int retval;
 
     if (inode->i_op->get_gps_location) {
-        struct gps_location* loc = inode->i_op->get_gps_location(inode, loc);
-        retval = LocationCompare(loc, &systemloc);
-        if(!retval)
-            return -EACCES;
+	struct gps_location loc;
+	inode->i_op->get_gps_location(inode, &loc);
+	if(!LocationCompare(&loc, &systemloc)) {
+	    return -EACCES;
+	}
     }
 
 	if (unlikely(mask & MAY_WRITE)) {
