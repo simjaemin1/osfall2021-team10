@@ -21,7 +21,8 @@ int main(int argc, char *argv[])
 {
     if(argc != 6)
     {
-        printf("Usage: \n");
+        printf("Usage: ./gpsupdate lat_integer lat_fractional lng_integer lng_fractional accuracy\n");
+	return 0;
     }
     
     struct gps_location loc = { atoi(argv[1]), atoi(argv[2]), 
