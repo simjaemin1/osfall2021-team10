@@ -7,6 +7,7 @@ arch/arm64/configs/tizen_bcmrpi_defconfig 파일에서
 `CONFIG_EXT2_FS=y, `  
 `# CONFIG_EXT2_FS_XATTR is not set` 두 줄을 추가하고  
 `CONFIG_EXT4_USE_FOR_EXT2=y`를 `# CONFIG_EXT4_USE_FOR_EXT2 is not set`로 바꾼다.  
+해당 파일을 tizen_bcmrpi_defconfig라고 저장한다.
 
 
 ### 0.2 compile
@@ -33,11 +34,8 @@ git pull origin proj4
 sudo ./scripts/mkbootimg_rpi3.sh
 ```
 
-3. config 파일을 tizen_bcmrpi3_defconfig_수정 으로 바꾸고 이름을 tizen_bcmrpi3_defconfig로 바꾼다.그리고 똑같은 코드를 이용하여 컴파일한다.
-
-4. config 파일을 바꾸고 똑같은 코드를 이용하여 컴파일한다.
-
-5. config 파일을 바꾸고 똑같은 코드를 이용하여 컴파일한다. boot.img, modules.img파일을 tizen-image디렉토리로 옮긴다.
+3. config 파일을 tizen_bcmrpi3_defconfig_수정 으로 바꾸고 이름을 tizen_bcmrpi3_defconfig로 바꾼다.그리고 똑같은 코드를 이용하여 컴파일하고 boot.img, modules.img파일을 tizen-image디렉토리로 옮긴다.
+4. 
 ```bash
 ./build-rpi3-arm64.sh
 sudo ./scripts/mkbootimg_rpi3.sh
@@ -54,10 +52,10 @@ cd ../tizen-5.0-rpi3
 
 7. test file을 compile하고 mnt_dir의 root디렉토리로 옮긴다.
 ```bash
-cd test;
-arm-linux-gnueabi-gcc -I../include gpsupdate.c -o gpsupdate;
-arm-linux-gnueabi-gcc -I../include file_loc.c -o file_loc;
-cd ..;
+cd test
+make
+sh move.sh
+cd ..
 ```
 
 8. e2fsprogs를 컴파일하고 proj.fs파일을 만들고 옮긴다. mnt_dir의 root 디렉토리로 옮긴다.
