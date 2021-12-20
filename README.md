@@ -122,6 +122,7 @@ mount -o loop -t ext2 /root/proj4.fs /root/proj4
 SYSCALL_DEFINE1(set_gps_location, struct gps_location __user *, loc)
 SYSCALL_DEFINE2(get_gps_location, const char __user *pathname, struct gps_location __user *loc)
 ```
+두 개의 system call을 정의한다.
 
 ### 1.2 include/linux/gps.h
 gps.h 에는 struct gps_location 구조체를 정의하였고, 현재 시스템에 대한 location정보를 저장하는 systemloc을 정의해 주었다.
@@ -229,6 +230,21 @@ sqrt 함수를 추가적으로 정의하는 것은 redundant하다고 판단하�
 #### 3.1.1 test/file_loc.c
 파일의 이름 값을 argument로 받은 후 get_gps_location 시스템 콜을 호출하여 해당 파일의 inode에 저장되어 있는 위도 경도 값 얻은 후 해당 값을 콘솔에 출력한다. 해당 위도 경도 값에 해당하는 구글 맵 링크도 출력한다.
 
+#### 3.1.2 test/gpsupdate.c
+새로운 location에 대한 정보인 lat_integer, lat_fractional, lng_integer, lng_fractional, accuracy값을 순서대로 argument로 받아서 systemloc의 값을 해당 값으로 바꾼다.
+
+#### 3.1.3 test/file_write.c
+파일의 이름과 내용을 argument로 받아서 해당 파일에 해당 내용을 작성하는 함수이다.
+
+#### 3.1.3 test/file_read.c
+파일의 이름을 argument로 받아서 해당 파일에 해당 내용을 출력하는 함수이다.
+
+#### 3.1.4 test/file_append.c
+파일의 이름과 내용을 argument로 받아서 해당 파일에 해당 내용을 추가하는 함수이다.
+
+
 ## 4. Lesson Learned
 1. 위도와 경도를 통해 두 점 간의 거리를 계산하는 것 자체는 사실 그렇게 복잡하지 않았지만, fixed point를 사용하면서 문제가 어렵게 되었으며 계산 정밀도에 대해 고민을 많이 하게 되었다. 실제로 테스트 해보니 삼각함수 자체는 굉장히 빠른속도로 수렴하고 (polynomial로 근사할 경우 나누는 항에 팩토리얼이 있어 매우 빠르게 수렴하는 것이라는 글을 보았다), acos, asin, atan 등의 연산은 다항함수로 표현하면 빠르게 수렴하지 않으므로 보통 다른 방식을 많이 사용한다는 것을 알게 되었다. 문제는 위도와 경도를 통한 거리계산에서 아주 정확한 식은 항상 acos이나 atan을 가지고 있었고 fixed point operation을 여러 계산을 지원하도록 아주 정밀하게 짠다면 물론 가장 정확한 결과를 얻을 수 있었겠지만 그것이 쉽지 않은 상황이었다. 그런 상황에서 정밀도가 떨어지는 acos, atan 등을 사용하게 되었을 때가 더 정확할지 아니면 연산 하나 하나가 정밀도가 조금 떨어지는 대신 간단한 연산들 만으로 대략적 값을 구할 수 있는 식을 쓸지 고민이 많이 되었다. 결국 쉽게 가기 위해 근사적으로 구성하는 것이 좋겠다 생각 하여 최대한 식들을 간단하게 구성하였다. Numerical analysis가 정밀도와 계산속도 등 고려해야 할 옵션이 많아 생각보다 굉장히 어려운 문제이며 공부해보면 재미있는 주제가 될 수 있겠다고 생각하였다.
-2. 
+2. filesystem과 관련된 함수들은 inode_operation이라는 구조체에 저장이 되어 있었는데 project2를 할 때 봤던 구조와 흡사해서 흥미로웠다. 이러한 구조를 리눅스 커널을 만들 때에 자주 사용하는 것 같다.
+3. filename을 통해서 file에 대한 inode를 찾는 방법이 아무리 인터넷으로 검색을 해봐도 나오지 않아서 해당 방법을 찾는 데에 시간이 오래 걸렸다. shell에서 find를 할 때에 해당 기능을 사용할 것이라고 예상하여 strace find 를 해서 fstatat 존재를 알아내고 이 시스템 콜이 있는 곳에서 pathname을 검색하여 여러 함수를 들여다보니 user_path_at_empty라는 적절한 함수를 찾을 수 있었다. document를 조금 더 꼼꼼히 읽었으면 vfs fuction들이 있는 곳을 잘 찾다가 찾을 수 있었을 것 같은데 고생을 많이 하였다. 그렇지만 내가 원하는 기능을 가진 함수를 찾는 방법을 알게 된 것 같다.
+4. qemu shell에서 mount를 하는 데에 생각보다 엄청난 시간이 걸렸다. 처음에 document의 지시대로 정확하게 한 것 같은데 mount가 되지 않아 무척 당황스러웠다. 몇차례 다시 시도해보았지만 계속 되지 않아서 master 브랜치에서부터 다시 컴파일을 차근차근 시도하였더니 성공하였다. 그렇지만 우리가 작성한 코드를 pull한 후에 다시 컴파일을 하니 또 mount가 되지 않았다. 몇 차례 시도 끝에 struct ext2_inode_info 의 맨 앞에 새로운 변수들을 선언하면 안되고 맨 끝에다가 선언해야 한다는 것을 깨달았다. 구조체에서 변수의 선언 위치가 중요하다는 사실을 깨닫게 되었다.
