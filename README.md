@@ -174,6 +174,10 @@ ext2 파일시스템에서 file을 만들 때 호출하는 함수인 ext2_create
 ### 1.9 fs/namei.c
 int __inode_permission 함수에서 inode->i_op->get_gps_location 함수 포인터가 존재하는지 먼저 체크하고, 존재한다면 해당 fs를 사용한다는 의미이므로 LocationCompare을 이용하여 체크하고, 거리가 멀다면 EACCES error를 return하도록 하여 permission을 두었다. inode_permission과 관련된 다른 함수에 implement해도 괜찮겠다고 생각했으나 중간부분에 implement 하였다.
 
+### 1.7 include/linux/gps_lock.h
+spinlock의 일종 인 spinlock_t gps_lock을 extern 한다. 해당 구조체의 정의는 kernel/gps.c 파일에서 한다.
+
+
 ## 2. Fixed Point Operation
 ### 2.1 Formula to get distance between two points using latitude and longitude
 아주 정확하다고 알려진 공식에는 acos, atan 등을 사용하는데 이것을 fixed point operation으로 나타내기 위해서 필요한 식들이 너무 많고 복잡하여 정밀도를 포기하고 최대한 간단하게 구성하기 위해 근사식들을 찾아보았다.  
