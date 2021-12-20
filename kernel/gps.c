@@ -6,6 +6,7 @@
 #include <linux/namei.h>
 #include <linux/dcache.h>
 #include <linux/slab.h>
+#include <linux/fs.h>
 
 #define CORRECTION 1000000LL
 #define INT(x) (x / 1000000LL)
@@ -233,6 +234,13 @@ int valid_location(struct gps_location *loc)
   return lat_fractional && lng_fractional && lat_int && lng_int && acc;
 }
 
+void print_systemloc(void)
+{
+	spin_lock(&gps_lock);
+	printk("systemloc: (%d.%d, %d.%d)/%d\n", systemloc.lat_integer, systemloc.lat_fractional, systemloc.lng_integer, systemloc.lng_fractional, systemloc.accuracy);
+	spin_unlock(&gps_lock);
+}
+
 SYSCALL_DEFINE1(set_gps_location, struct gps_location __user *, loc)
 {
 	struct gps_location k_loc;
@@ -250,6 +258,7 @@ SYSCALL_DEFINE1(set_gps_location, struct gps_location __user *, loc)
 	systemloc.lng_fractional = k_loc.lng_fractional;
 	systemloc.accuracy = k_loc.accuracy;
 	spin_unlock(&gps_lock);
+	print_systemloc();
 	return 0;
 }
 
@@ -270,33 +279,13 @@ SYSCALL_DEFINE2(get_gps_location, const char __user *, pathname, struct gps_loca
 	struct path path;
 	unsigned int lookup_flags = LOOKUP_FOLLOW;
 	struct gps_location k_loc;
-	long path_length;
-	char * k_pathname;
 
-	if(path_length = strnlen_user(pathname, 1000L))
-	{
-		printk("ERROR: invalid path length\n");
-		return -EINVAL;
-	}
-
-	if(k_pathname = (char*)kmalloc(path_length, GFP_KERNEL))
-	{
-		printk("ERROR: kmalloc error\n");
-		return -EINVAL;
-	}
-
-	if(strncpy_from_user(k_pathname, pathname, path_length))
-	{
-		printk("ERROR: strncpy_user error\n");
-		kfree(k_pathname);
-		return -EINVAL;
-	}
-
-	if(user_path_at_empty(AT_FDCWD, k_pathname, lookup_flags, &path, NULL))
+	print_systemloc();
+	int error;
+	if(error=user_path_at_empty(AT_FDCWD, pathname, lookup_flags, &path, NULL))
 	{
 		printk("ERROR: no such pathname\n");
-		kfree(k_pathname);
-		return -EFAULT;	
+		return -error;	
 	}
 
 	struct inode *file_inode;
@@ -304,7 +293,6 @@ SYSCALL_DEFINE2(get_gps_location, const char __user *, pathname, struct gps_loca
 	if(!file_inode->i_op->get_gps_location)
 	{
 		printk("ERROR: no gps-coordinate system embedded\n");
-		kfree(k_pathname);
 		return -ENODEV;
 	}
 	file_inode->i_op->get_gps_location(file_inode, &k_loc);
@@ -312,7 +300,6 @@ SYSCALL_DEFINE2(get_gps_location, const char __user *, pathname, struct gps_loca
 	spin_lock(&gps_lock);
 	if(!LocationCompare(&k_loc, &systemloc)) {
 		spin_unlock(&gps_lock);
-		kfree(k_pathname);
 		return -EACCES;
 	}
 	spin_unlock(&gps_lock);
@@ -322,7 +309,5 @@ SYSCALL_DEFINE2(get_gps_location, const char __user *, pathname, struct gps_loca
 		printk("ERROR: copy to user space error\n");
 		return -EFAULT;
 	}
-
-	kfree(k_pathname);
 	return 0;
 }
