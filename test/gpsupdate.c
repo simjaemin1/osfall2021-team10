@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/syscall.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include <linux/gps.h>
 
 #define SET_GPS_LOCATION 398
@@ -11,8 +13,7 @@ void set_location(struct gps_location *loc)
 	int error;
 	error = syscall(SET_GPS_LOCATION, loc);
 	if(error){
-		printf("error code: %d\n", error)
-		return -1;
+		printf("error code: %d\n", error);
 	}
 }
 

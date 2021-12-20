@@ -300,11 +300,6 @@ static inline __u32 ext2_mask_flags(umode_t mode, __u32 flags)
  * Structure of an inode on the disk
  */
 struct ext2_inode {
-    __le32  i_lat_integer;
-    __le32  i_lat_fractional;
-    __le32  i_lng_integer;
-    __le32  i_lng_fractional;
-    __le32  i_accuracy;
 	__le16	i_mode;		/* File mode */
 	__le16	i_uid;		/* Low 16 bits of Owner Uid */
 	__le32	i_size;		/* Size in bytes */
@@ -356,6 +351,12 @@ struct ext2_inode {
 			__u32	m_i_reserved2[2];
 		} masix2;
 	} osd2;				/* OS dependent 2 */
+
+    __le32  i_lat_integer;
+    __le32  i_lat_fractional;
+    __le32  i_lng_integer;
+    __le32  i_lng_fractional;
+    __le32  i_accuracy;
 };
 
 #define i_size_high	i_dir_acl
@@ -661,12 +662,6 @@ struct ext2_mount_options {
  * second extended file system inode data in memory
  */
 struct ext2_inode_info {
-    __u32   i_lat_integer;
-    __u32   i_lat_fractional;
-    __u32   i_lng_integer;
-    __u32   i_lng_fractional;
-    __u32   i_accuracy;
-
 	__le32	i_data[15];
 	__u32	i_flags;
 	__u32	i_faddr;
@@ -717,6 +712,13 @@ struct ext2_inode_info {
 #ifdef CONFIG_QUOTA
 	struct dquot *i_dquot[MAXQUOTAS];
 #endif
+    __u32   i_lat_integer;
+    __u32   i_lat_fractional;
+    __u32   i_lng_integer;
+    __u32   i_lng_fractional;
+    __u32   i_accuracy;
+
+
 };
 
 #ifdef CONFIG_FS_DAX

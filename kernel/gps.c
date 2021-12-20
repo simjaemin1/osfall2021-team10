@@ -1,5 +1,6 @@
 #include <linux/syscalls.h>
 #include <linux/gps.h>
+#include <linux/gps_lock.h>
 #include <uapi/asm-generic/errno-base.h>
 #include <uapi/linux/fcntl.h>
 #include <linux/namei.h>
@@ -235,7 +236,11 @@ int valid_location(struct gps_location *loc)
 SYSCALL_DEFINE1(set_gps_location, struct gps_location __user *, loc)
 {
 	struct gps_location k_loc;
-	copy_from_user(&k_loc, loc, sizeof(struct gps_location));
+	if(copy_from_user(&k_loc, loc, sizeof(struct gps_location)))
+	{
+		printk("ERROR: copy from user error\n");
+		return -EFAULT;
+	}
 	if(!valid_location(&k_loc))
 		return -EINVAL;
 	spin_lock(&gps_lock);
@@ -294,7 +299,8 @@ SYSCALL_DEFINE2(get_gps_location, const char __user *, pathname, struct gps_loca
 		return -EFAULT;	
 	}
 
-	struct inode *file_inode = d_inode(path.dentry);
+	struct inode *file_inode;
+	file_inode= d_inode(path.dentry);
 	if(!file_inode->i_op->get_gps_location)
 	{
 		printk("ERROR: no gps-coordinate system embedded\n");
@@ -311,7 +317,12 @@ SYSCALL_DEFINE2(get_gps_location, const char __user *, pathname, struct gps_loca
 	}
 	spin_unlock(&gps_lock);
 	
-	copy_to_user(loc, &k_loc, sizeof(struct gps_location));
+	if(copy_to_user(loc, &k_loc, sizeof(struct gps_location)))
+	{
+		printk("ERROR: copy to user space error\n");
+		return -EFAULT;
+	}
+
 	kfree(k_pathname);
 	return 0;
 }

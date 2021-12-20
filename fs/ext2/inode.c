@@ -41,6 +41,7 @@
 #include "xattr.h"
 #include <linux/spinlock.h>
 #include <linux/gps.h>
+#include <linux/gps_lock.h>
 
 
 int ext2_set_gps_location(struct inode *inode) 
