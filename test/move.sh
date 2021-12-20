@@ -3,4 +3,3 @@
 sudo cp gpsupdate ../../mnt_dir/root;
 sudo cp file_loc ../../mnt_dir/root;
 sudo cp file_write ../../mnt_dir/root;
-sudo cp file_make ../../mnt_dir/root;
