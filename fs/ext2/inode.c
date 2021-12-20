@@ -63,7 +63,7 @@ int ext2_set_gps_location(struct inode *inode)
 int ext2_get_gps_location(struct inode *inode, struct gps_location *loc)
 {
 	struct ext2_inode_info *ei = EXT2_I(inode);
-	if(ei->i_accuracy=0)
+	if(ei->i_accuracy==0)
 		return -ENODEV;
 
 	loc->lat_integer = ei->i_lat_integer;
