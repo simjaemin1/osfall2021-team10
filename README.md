@@ -13,7 +13,6 @@ project0이 끝난 상황이라고 가정하고,
 다음과 같은 순서로 진행한다.
 1. 다음을 실행하여 proj4 브랜치의 파일을 받는다.
 ```bash
-git pull origin master
 git branch proj4
 git checkout proj4
 git pull origin proj4
