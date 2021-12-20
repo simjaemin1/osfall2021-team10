@@ -2,11 +2,11 @@
 
 ## 0. How to build kernel
 ### 0.1 configuration change
-arch/arm64/configs/tizen_bcmrpi_defconfig 파일에서
-`CONFIG_EXT2_FS is not set`를 삭제한다.
-`CONFIG_EXT2_FS=y, `
-`# CONFIG_EXT2_FS_XATTR is not set` 두 줄을 추가하고
-`CONFIG_EXT4_USE_FOR_EXT2=y`를 `# CONFIG_EXT4_USE_FOR_EXT2 is not set`로 바꾼다.
+arch/arm64/configs/tizen_bcmrpi_defconfig 파일에서  
+`CONFIG_EXT2_FS is not set`를 삭제한다.  
+`CONFIG_EXT2_FS=y, `  
+`# CONFIG_EXT2_FS_XATTR is not set` 두 줄을 추가하고  
+`CONFIG_EXT4_USE_FOR_EXT2=y`를 `# CONFIG_EXT4_USE_FOR_EXT2 is not set`로 바꾼다.  
 
 
 ### 0.2 compile
@@ -58,7 +58,7 @@ cd test;
 arm-linux-gnueabi-gcc -I../include gpsupdate.c -o gpsupdate;
 arm-linux-gnueabi-gcc -I../include file_loc.c -o file_loc;
 cd ..;
-bash
+```
 
 8. e2fsprogs를 컴파일하고 proj.fs파일을 만들고 옮긴다. mnt_dir의 root 디렉토리로 옮긴다.
 ```bash
@@ -81,10 +81,13 @@ sudo mv proj4.fs ../mnt_dir/root/
 9. /etc/fstab를 루트 파일시스템이 write를 할 수 있도록 바꾼다.
 다음과 같이 바꾼다.
 ```bash
+# <file system> <mount point>   <type>  <options>           <dump> <pass>
+/dev/root       /               ext4    defaults,noatime,rw 0      1
+LABEL=system-data /opt          ext4    defaults,noatime    0      2
 ```
 
-10. qemu를 실행한다.
-sudo ./qemu.sh
+10. qemu를 실행한다.  
+`sudo ./qemu.sh`
 
 11. qemu shell 에서 proj4를 만들고 mount를 한다.
 ```bash
